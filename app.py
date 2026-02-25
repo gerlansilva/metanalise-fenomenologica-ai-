@@ -19,299 +19,209 @@ st.set_page_config(
 # ============================================================
 # IDENTIDADE VISUAL (PALETA + FONTES)
 # ============================================================
-st.markdown(
-    """
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Open+Sans:wght@300;400;600;700&family=Roboto:wght@300;400;500;700&family=Work+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-
+st.markdown("""
 <style>
-  :root{
-    --brown:#5E412F;
-    --cream:#FCEBB6;
-    --mint:#78C0A8;
-    --orange:#F07818;
-    --gold:#F0A830;
 
-    --text:#111827;
-    --muted:#6b7280;
-    --line:#e5e7eb;
-    --line2:#eef2f7;
-    --panel:#ffffff;
-    --shadow: 0 10px 25px rgba(17,24,39,0.06);
-    --shadow2: 0 2px 10px rgba(17,24,39,0.05);
-    --radius: 18px;
-  }
+/* FONTES */
 
-  /* ====== FUNDO GERAL ====== */
-  html, body { background: var(--cream) !important; }
-  .stApp { background: var(--cream) !important; color: var(--text) !important; }
-  * { font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Roboto:wght@300;400;500&family=Open+Sans:wght@300;400;600&family=Work+Sans:wght@400;600&display=swap');
 
-  /* ====== REMOVE TOPO DEFAULT / AJUSTA CONTAINER ====== */
-  section.main > div { padding-top: 24px !important; }
-  .block-container { max-width: 1320px; padding-top: 16px; padding-bottom: 40px; }
+/* CORES */
 
-  /* ====== PAINEL PRINCIPAL (CARD GIGANTE) ====== */
-  .qa-shell{
-    background: var(--panel);
-    border: 1px solid rgba(17,24,39,0.06);
-    border-radius: calc(var(--radius) + 6px);
-    box-shadow: var(--shadow);
-    padding: 26px 26px 18px 26px;
-  }
+:root{
 
-  /* ====== CABEÇALHO ====== */
-  .qa-title{
-    font-family: "Josefin Sans", sans-serif;
-    font-weight: 700;
-    font-size: 44px;
-    line-height: 1.05;
-    color: var(--brown);
-    letter-spacing: -0.02em;
-    margin: 0 0 10px 0;
-  }
-  .qa-subtitle{
-    color: var(--muted);
-    font-size: 15px;
-    margin: 0 0 18px 0;
-  }
-  .qa-badge{
-    display:inline-flex;
-    gap:10px;
-    align-items:center;
-    border: 1px solid rgba(17,24,39,0.08);
-    background: rgba(120,192,168,0.16);
-    color: var(--brown);
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-weight: 700;
-    font-family: "Work Sans", sans-serif;
-    font-size: 12px;
-  }
+--bg:#2B2A26;
+--panel:#35332E;
+--panel2:#403D36;
 
-  /* ====== INPUTS ====== */
-  textarea, input, .stTextInput > div > div > input {
-    background: #fff !important;
-    color: var(--text) !important;
-    border-radius: 14px !important;
-    border: 1px solid rgba(17,24,39,0.10) !important;
-  }
-  textarea:focus, input:focus {
-    border-color: rgba(240,120,24,0.55) !important;
-    box-shadow: 0 0 0 4px rgba(240,120,24,0.12) !important;
-  }
+--border:#5A5448;
 
-  /* ====== RADIO ====== */
-  .stRadio label {
-    font-family: "Work Sans", sans-serif !important;
-    font-weight: 600 !important;
-    color: var(--text) !important;
-  }
+--text:#F1E9D8;
+--muted:#C8BEA8;
 
-  /* ====== FILE UPLOADER ====== */
-  [data-testid="stFileUploader"]{
-    border-radius: var(--radius) !important;
-    border: 1px dashed rgba(17,24,39,0.18) !important;
-    background: rgba(252,235,182,0.35) !important;
-    padding: 14px !important;
-  }
+--accent:#C26A2E;
+--accent-hover:#D4A373;
 
-  /* ====== BOTÃO PRINCIPAL ====== */
-  .stButton > button {
-    background: linear-gradient(135deg, var(--orange), var(--gold)) !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: 14px !important;
-    padding: 12px 18px !important;
-    font-family: "Work Sans", sans-serif !important;
-    font-weight: 800 !important;
-    letter-spacing: .01em !important;
-    box-shadow: 0 12px 18px rgba(240,120,24,0.18) !important;
-    transition: transform .08s ease, box-shadow .12s ease;
-  }
-  .stButton > button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 16px 22px rgba(240,120,24,0.22) !important;
-  }
-  .stButton > button:disabled { opacity: 0.55 !important; }
+--green:#6F8A73;
+--green-dark:#4F6354;
 
-  /* ====== DOWNLOAD BUTTON ====== */
-  div[data-testid="stDownloadButton"] > button {
-    border: 1px solid rgba(17,24,39,0.10) !important;
-    background: #fff !important;
-    color: var(--brown) !important;
-    border-radius: 14px !important;
-    padding: 10px 14px !important;
-    font-weight: 800 !important;
-    font-family: "Work Sans", sans-serif !important;
-    box-shadow: var(--shadow2) !important;
-  }
-  div[data-testid="stDownloadButton"] > button:hover {
-    border-color: rgba(240,120,24,0.35) !important;
-    box-shadow: 0 10px 20px rgba(17,24,39,0.08) !important;
-  }
+--input:#2F2D28;
 
-  /* ====== TABS ====== */
-  button[data-baseweb="tab"]{
-    font-family: "Work Sans", sans-serif !important;
-    font-weight: 800 !important;
-    color: var(--muted) !important;
-  }
-  button[data-baseweb="tab"][aria-selected="true"]{
-    color: var(--brown) !important;
-  }
-  div[data-baseweb="tab-highlight"]{
-    background: linear-gradient(90deg, var(--orange), var(--gold)) !important;
-    height: 3px !important;
-    border-radius: 999px !important;
-  }
+}
 
-  /* ====== SCROLLBOX + STICKY HEADER ====== */
-  .scrollbox{
-    max-height: 72vh;
-    overflow-y: auto;
-    padding-right: 10px;
-  }
-  .sticky-header{
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: var(--panel);
-    padding-top: 6px;
-  }
+/* FUNDO */
 
-  /* ====== GRID “QUADRO” ====== */
-  .grid-header{
-    display:grid;
-    grid-template-columns: 220px 1.25fr 1.1fr;
-    gap: 18px;
-    padding: 14px 0 10px 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .grid-header .h{
-    font-weight: 900;
-    font-size: 12px;
-    letter-spacing: .10em;
-    color: var(--muted);
-    text-transform: uppercase;
-    font-family: "Work Sans", sans-serif;
-  }
-  .grid-row{
-    display:grid;
-    grid-template-columns: 220px 1.25fr 1.1fr;
-    gap: 18px;
-    padding: 18px 0;
-    border-bottom: 1px solid var(--line2);
-  }
+html, body, .stApp{
 
-  .idblock{
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-weight: 800;
-    color: var(--brown);
-    margin-bottom: 6px;
-    word-break: break-word;
-  }
-  .docblock{
-    color: var(--text);
-    font-weight: 700;
-    margin-bottom: 6px;
-    word-break: break-word;
-  }
-  .pagblock{ color: var(--muted); font-size: 12px; }
+background:var(--bg);
+color:var(--text);
 
-  .quote{
-    font-style: italic;
-    color: var(--text);
-    line-height: 1.62;
-    white-space: pre-wrap;
-    border-left: 4px solid rgba(120,192,168,0.95);
-    padding-left: 12px;
-  }
+font-family:"Open Sans", sans-serif;
 
-  .cj-title{
-    font-weight: 900;
-    font-size: 12px;
-    letter-spacing: .08em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-top: 4px;
-    margin-bottom: 6px;
-    font-family: "Work Sans", sans-serif;
-  }
-  .cj-text{ color: var(--text); line-height: 1.62; white-space: pre-wrap; }
+}
 
-  .synth-card{
-    background: rgba(252,235,182,0.30);
-    border: 1px solid rgba(17,24,39,0.06);
-    padding: 16px;
-    border-radius: 16px;
-    font-weight: 700;
-    color: var(--text);
-    line-height: 1.6;
-    white-space: pre-wrap;
-  }
+/* TITULO */
 
-  /* ====== CARDS (Categorias / Temas) ====== */
-  .cat-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-  .cat-card{
-    border: 1px solid rgba(17,24,39,0.08);
-    border-radius: 20px;
-    padding: 18px;
-    background: var(--panel);
-    box-shadow: var(--shadow2);
-  }
-  .cat-title{
-    font-family: "Josefin Sans", sans-serif;
-    font-weight: 800;
-    font-size: 28px;
-    line-height: 1.15;
-    margin: 0 0 10px 0;
-    color: var(--brown);
-  }
-  .cat-desc{
-    color: var(--text);
-    line-height: 1.65;
-    margin-bottom: 14px;
-    white-space: pre-wrap;
-  }
-  .cat-sub{
-    font-weight: 900;
-    font-size: 12px;
-    letter-spacing: .10em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    font-family: "Work Sans", sans-serif;
-  }
-  .chips{ display:flex; flex-wrap: wrap; gap: 10px; }
-  .chip{
-    border: 1px solid rgba(17,24,39,0.08);
-    border-radius: 12px;
-    padding: 6px 10px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: 13px;
-    color: var(--brown);
-    background: rgba(120,192,168,0.18);
-  }
+.qa-title-center{
 
-  .muted{ color: #9ca3af; font-size: 13px; }
+font-family:"Josefin Sans", sans-serif;
 
-  /* ====== SCROLLBAR ====== */
-  ::-webkit-scrollbar { width: 10px; }
-  ::-webkit-scrollbar-thumb { background: rgba(120,192,168,0.9); border-radius: 999px; }
-  ::-webkit-scrollbar-track { background: rgba(17,24,39,0.04); }
+font-size:48px;
+font-weight:700;
 
-  /* Responsivo */
-  @media (max-width: 1100px){
-    .grid-header, .grid-row{ grid-template-columns: 1fr; }
-    .cat-grid{ grid-template-columns: 1fr; }
-    .qa-title{ font-size: 36px; }
-  }
+text-align:center;
+
+margin-top:20px;
+margin-bottom:30px;
+
+color:var(--text);
+
+}
+
+/* CARDS */
+
+.qa-shell{
+
+background:var(--panel);
+
+border:1px solid var(--border);
+
+border-radius:16px;
+
+padding:20px;
+
+box-shadow:0 6px 20px rgba(0,0,0,0.35);
+
+}
+
+/* CARDS MAIS IMPORTANTES */
+
+.qa-shell-highlight{
+
+background:var(--panel2);
+
+}
+
+/* INPUT */
+
+textarea, input{
+
+background:var(--input) !important;
+
+color:var(--text) !important;
+
+border:1px solid var(--border) !important;
+
+border-radius:10px !important;
+
+}
+
+textarea:focus{
+
+border-color:var(--accent) !important;
+
+box-shadow:0 0 0 2px rgba(194,106,46,0.4);
+
+}
+
+/* BOTÕES */
+
+.stButton > button{
+
+background:var(--accent);
+
+color:white;
+
+border:none;
+
+border-radius:12px;
+
+padding:10px 20px;
+
+font-family:"Work Sans";
+
+font-weight:600;
+
+}
+
+.stButton > button:hover{
+
+background:var(--accent-hover);
+
+}
+
+/* TABS */
+
+button[data-baseweb="tab"]{
+
+color:var(--muted);
+
+font-weight:600;
+
+}
+
+button[data-baseweb="tab"][aria-selected="true"]{
+
+color:var(--text);
+
+}
+
+div[data-baseweb="tab-highlight"]{
+
+background:var(--accent);
+
+}
+
+/* CITAÇÃO */
+
+.quote{
+
+border-left:4px solid var(--green);
+
+padding-left:12px;
+
+color:#E6DCC8;
+
+font-style:italic;
+
+}
+
+/* CHIP */
+
+.chip{
+
+display:inline-block;
+
+background:var(--green-dark);
+
+color:white;
+
+padding:5px 10px;
+
+border-radius:8px;
+
+font-size:12px;
+
+margin:2px;
+
+}
+
+/* CSV BUTTON */
+
+.csv-btn{
+
+background:#4F6354;
+
+color:white;
+
+padding:6px 14px;
+
+border-radius:10px;
+
+}
+
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # ============================================================
 # SESSION STATE
