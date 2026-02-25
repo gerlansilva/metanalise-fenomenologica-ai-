@@ -329,18 +329,12 @@ def includes_systematic(m: str) -> bool:
 # UI — CABEÇALHO PROFISSIONAL
 # ============================================================
 st.markdown(
-    """
-<div class="qa-shell">
-  <div style="display:flex; justify-content:space-between; gap:14px; align-items:flex-start; flex-wrap:wrap;">
-    <div>
-      <div class="qa-title">📖 Análise Qualitativa AI</div>
-      <div class="qa-subtitle">Fenomenológica • Temática (Braun & Clarke) • Mapeamento • Rastreamento por documento/página • Export CSV</div>
-    </div>
-    <div class="qa-badge">Identidade visual • Paleta + Tipografia</div>
-  </div>
+"""
+<div class="qa-title-center">
+📖 Análise Qualitativa AI
 </div>
 """,
-    unsafe_allow_html=True,
+unsafe_allow_html=True
 )
 
 st.write("")  # espaçamento
