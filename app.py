@@ -12,172 +12,111 @@ from pydantic import BaseModel, Field
 # --- TEMA UI (Cole logo após st.set_page_config) ---
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@500;700&family=Open+Sans:wght@400;600;700&family=Work+Sans:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@600;700&family=Open+Sans:wght@400;600&family=Work+Sans:wght@600&display=swap" rel="stylesheet">
 
 <style>
+
 :root{
-  /* Base neutra */
-  --bg:#F4F1EC;         /* fundo */
-  --card:#FFFFFF;       /* cards */
-  --panel:#ECE6DD;      /* painéis/inputs */
-  --border:#D8D1C7;     /* bordas */
+ --bg:#F4F8F8;
+ --card:#FFFFFF;
+ --panel:#EDF4F5;
+ --border:#D6E2E3;
 
-  /* Tipografia */
-  --text:#2B2B2B;       /* texto principal */
-  --muted:#6E6A63;      /* texto secundário */
+ --text:#374B4A;
+ --muted:#6B7C7C;
 
-  /* Identidade */
-  --primary:#C06A3E;    /* botões/ativo */
-  --primaryHover:#D98A5F;
-  --highlight:#E6B98C;  /* destaque suave */
+ --primary:#526760;
+ --primaryHover:#3F5450;
 
-  /* Analíticas (tags/códigos) */
-  --moss:#6F8A73;
-  --slate:#6C8799;
-  --terra:#B8745C;
-  --sand:#C9A66B;
-
-  --shadow: 0 10px 26px rgba(43,43,43,0.10);
-  --shadow2: 0 2px 10px rgba(43,43,43,0.08);
-  --r: 18px;
+ --accent:#88D9E6;
+ --category:#8B8BAE;
 }
 
-/* Fundo geral */
-html, body { background: var(--bg) !important; }
-.stApp { background: var(--bg) !important; color: var(--text) !important; }
-* { font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+html, body, .stApp{
+ background:var(--bg);
+ color:var(--text);
+ font-family:"Open Sans", sans-serif;
+}
 
-/* Container */
 .block-container{
-  max-width: 1320px;
-  padding-top: 22px;
-  padding-bottom: 36px;
+ max-width:1300px;
+ padding-top:20px;
 }
 
-/* Título central (use st.markdown com .qa-title-center) */
 .qa-title-center{
-  font-family:"Josefin Sans", sans-serif;
-  font-weight:700;
-  font-size: 52px;
-  letter-spacing:-0.02em;
-  text-align:center;
-  color: var(--text);
-  margin: 6px 0 20px 0;
+ font-family:"Josefin Sans";
+ font-size:52px;
+ text-align:center;
+ margin-bottom:25px;
+ color:var(--text);
 }
 
-/* Cards/painéis padrão */
-.qa-shell{
-  background: var(--card);
-  border: 1px solid rgba(43,43,43,0.10);
-  border-radius: calc(var(--r) + 6px);
-  box-shadow: var(--shadow);
-  padding: 18px 20px;
-}
-.qa-shell-subtle{
-  background: var(--panel);
-  border: 1px solid rgba(43,43,43,0.10);
-  border-radius: calc(var(--r) + 6px);
-  box-shadow: var(--shadow2);
-  padding: 16px 18px;
+/* cards */
+
+.qa-card{
+ background:var(--card);
+ border-radius:16px;
+ padding:20px;
+ box-shadow:0 4px 14px rgba(0,0,0,.08);
+ border:1px solid var(--border);
+ margin-bottom:15px;
 }
 
-/* Texto secundário */
-.muted{ color: var(--muted) !important; }
+/* inputs */
 
-/* Inputs */
-textarea, input, .stTextInput > div > div > input{
-  background: var(--panel) !important;
-  color: var(--text) !important;
-  border: 1px solid rgba(43,43,43,0.14) !important;
-  border-radius: 14px !important;
-}
-textarea::placeholder, input::placeholder{
-  color: rgba(110,106,99,0.85) !important;
-}
-textarea:focus, input:focus{
-  border-color: rgba(192,106,62,0.70) !important;
-  box-shadow: 0 0 0 4px rgba(192,106,62,0.18) !important;
+textarea, input{
+ background:var(--panel)!important;
+ border:1px solid var(--border)!important;
+ border-radius:10px!important;
 }
 
-/* File uploader */
-[data-testid="stFileUploader"]{
-  border-radius: calc(var(--r) + 6px) !important;
-  border: 1px dashed rgba(43,43,43,0.22) !important;
-  background: rgba(236,230,221,0.55) !important;
+/* botão */
+
+.stButton button{
+
+ background:var(--primary)!important;
+ color:white!important;
+ border-radius:12px!important;
+ border:none!important;
+ padding:12px 20px!important;
+ font-weight:600!important;
 }
 
-/* Botão principal */
-.stButton > button{
-  background: linear-gradient(135deg, var(--primary), var(--primaryHover)) !important;
-  color: #fff !important;
-  border: none !important;
-  border-radius: 14px !important;
-  padding: 12px 18px !important;
-  font-family: "Work Sans", sans-serif !important;
-  font-weight: 700 !important;
-  box-shadow: 0 14px 22px rgba(192,106,62,0.18) !important;
-}
-.stButton > button:hover{
-  filter: saturate(1.05);
-  transform: translateY(-1px);
+.stButton button:hover{
+ background:var(--primaryHover)!important;
 }
 
-/* Download button */
-div[data-testid="stDownloadButton"] > button{
-  border: 1px solid rgba(43,43,43,0.14) !important;
-  background: var(--card) !important;
-  color: var(--text) !important;
-  border-radius: 14px !important;
-  font-weight: 700 !important;
-  box-shadow: var(--shadow2) !important;
-}
+/* tabs */
 
-/* Tabs */
 button[data-baseweb="tab"]{
-  font-family: "Work Sans", sans-serif !important;
-  font-weight: 700 !important;
-  color: rgba(110,106,99,0.95) !important;
+ font-family:"Work Sans";
+ font-weight:600;
 }
-button[data-baseweb="tab"][aria-selected="true"]{
-  color: var(--text) !important;
-}
+
 div[data-baseweb="tab-highlight"]{
-  background: linear-gradient(90deg, var(--primary), var(--primaryHover)) !important;
-  height: 3px !important;
-  border-radius: 999px !important;
+ background:var(--accent)!important;
+ height:3px;
 }
 
-/* Quote (citações) */
+/* citações */
+
 .quote{
-  font-style: italic;
-  line-height: 1.62;
-  white-space: pre-wrap;
-  border-left: 4px solid var(--slate);
-  padding-left: 12px;
-  color: var(--text);
+ border-left:4px solid var(--accent);
+ padding-left:12px;
+ font-style:italic;
 }
 
-/* Chips / tags (use <span class="chip chip-moss">) */
+/* chips */
+
 .chip{
-  display:inline-block;
-  border: 1px solid rgba(43,43,43,0.12);
-  border-radius: 12px;
-  padding: 6px 10px;
-  font-size: 13px;
-  color: var(--text);
-  background: rgba(230,185,140,0.22); /* highlight suave */
-  margin: 2px 4px 2px 0;
-}
-.chip-moss{ background: rgba(111,138,115,0.22); }
-.chip-slate{ background: rgba(108,135,153,0.20); }
-.chip-terra{ background: rgba(184,116,92,0.18); }
-.chip-sand{ background: rgba(201,166,107,0.22); }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(108,135,153,0.55); border-radius: 999px; }
-::-webkit-scrollbar-track { background: rgba(43,43,43,0.06); }
+ background:rgba(139,139,174,.15);
+ color:var(--text);
+ padding:5px 10px;
+ border-radius:8px;
+ font-size:13px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 # ============================================================
