@@ -152,7 +152,7 @@ if st.button("Iniciar Análise do Corpus", type="primary", disabled=not uploaded
 
             # Chamada à API
             response = client.models.generate_content(
-                model='gemini-2.5-pro', # Usando o modelo Pro mais recente
+                model='gemini-2.5-flash', # Usando o modelo Pro mais recente
                 contents=contents,
                 config=types.GenerateContentConfig(
                     system_instruction="""Você é um assistente de análise qualitativa de corpus documental.
