@@ -153,7 +153,7 @@ class AnalysisResult(BaseModel):
 # ============================================================
 # UI
 # ============================================================
-st.title("📖 Metanálise Fenomenológica AI")
+st.title("📖 Revisão sistemática")
 
 mode = st.radio(
     "Modo de análise",
