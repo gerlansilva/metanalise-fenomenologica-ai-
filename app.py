@@ -22,105 +22,60 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-/* FONTES */
-
+/* IMPORTAÇÃO DE FONTES */
 @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Roboto:wght@300;400;500&family=Open+Sans:wght@300;400;600&family=Work+Sans:wght@400;600&display=swap');
 
-/* CORES */
-
+/* VARIÁVEIS */
 :root{
 
---bg:#2B2A26;
---panel:#35332E;
---panel2:#403D36;
+  --bg:#F4EFE6;
+  --panel:#FBF7EF;
+  --line:#E3D7C3;
 
---border:#5A5448;
+  --text:#2F241C;
+  --muted:#6E6A5E;
 
---text:#F1E9D8;
---muted:#C8BEA8;
+  --accent:#C26A2E;
+  --accent-hover:#A35422;
 
---accent:#C26A2E;
---accent-hover:#D4A373;
-
---green:#6F8A73;
---green-dark:#4F6354;
-
---input:#2F2D28;
-
+  --green-soft:#7FA08F;
+  --green-dark:#5E6F64;
 }
 
 /* FUNDO */
-
 html, body, .stApp{
-
-background:var(--bg);
-color:var(--text);
-
-font-family:"Open Sans", sans-serif;
-
+  background:var(--bg) !important;
+  color:var(--text) !important;
+  font-family:"Open Sans", sans-serif;
 }
 
-/* TITULO */
-
+/* CABEÇALHO */
 .qa-title-center{
 
-font-family:"Josefin Sans", sans-serif;
+  font-family:"Josefin Sans", sans-serif;
+  font-size:48px;
+  font-weight:700;
 
-font-size:48px;
-font-weight:700;
+  text-align:center;
 
-text-align:center;
+  margin-top:10px;
+  margin-bottom:25px;
 
-margin-top:20px;
-margin-bottom:30px;
-
-color:var(--text);
-
+  color:var(--text);
 }
 
 /* CARDS */
-
 .qa-shell{
 
-background:var(--panel);
+  background:var(--panel);
 
-border:1px solid var(--border);
+  border:1px solid var(--line);
 
-border-radius:16px;
+  border-radius:20px;
 
-padding:20px;
+  padding:20px;
 
-box-shadow:0 6px 20px rgba(0,0,0,0.35);
-
-}
-
-/* CARDS MAIS IMPORTANTES */
-
-.qa-shell-highlight{
-
-background:var(--panel2);
-
-}
-
-/* INPUT */
-
-textarea, input{
-
-background:var(--input) !important;
-
-color:var(--text) !important;
-
-border:1px solid var(--border) !important;
-
-border-radius:10px !important;
-
-}
-
-textarea:focus{
-
-border-color:var(--accent) !important;
-
-box-shadow:0 0 0 2px rgba(194,106,46,0.4);
+  box-shadow:0 6px 18px rgba(0,0,0,0.05);
 
 }
 
@@ -128,25 +83,42 @@ box-shadow:0 0 0 2px rgba(194,106,46,0.4);
 
 .stButton > button{
 
-background:var(--accent);
+  background:var(--accent);
+  color:white;
 
-color:white;
+  border-radius:12px;
+  border:none;
 
-border:none;
+  padding:10px 22px;
 
-border-radius:12px;
-
-padding:10px 20px;
-
-font-family:"Work Sans";
-
-font-weight:600;
+  font-family:"Work Sans", sans-serif;
+  font-weight:600;
 
 }
 
 .stButton > button:hover{
 
-background:var(--accent-hover);
+  background:var(--accent-hover);
+
+}
+
+/* INPUTS */
+
+textarea, input{
+
+  background:#FFFDF8 !important;
+
+  border:1px solid var(--line) !important;
+
+  border-radius:10px !important;
+
+}
+
+textarea:focus{
+
+  border-color:var(--accent) !important;
+
+  box-shadow:0 0 0 3px rgba(194,106,46,0.15) !important;
 
 }
 
@@ -154,69 +126,55 @@ background:var(--accent-hover);
 
 button[data-baseweb="tab"]{
 
-color:var(--muted);
-
-font-weight:600;
+  font-family:"Work Sans", sans-serif;
+  font-weight:600;
+  color:var(--muted);
 
 }
 
 button[data-baseweb="tab"][aria-selected="true"]{
 
-color:var(--text);
+  color:var(--text);
 
 }
 
 div[data-baseweb="tab-highlight"]{
 
-background:var(--accent);
+  background:var(--accent);
 
 }
 
-/* CITAÇÃO */
+/* CITAÇÕES */
 
 .quote{
 
-border-left:4px solid var(--green);
+  border-left:4px solid var(--green-soft);
 
-padding-left:12px;
+  padding-left:12px;
 
-color:#E6DCC8;
+  color:#3a332c;
 
-font-style:italic;
+  font-style:italic;
 
 }
 
-/* CHIP */
+/* CHIPS */
 
 .chip{
 
-display:inline-block;
+  display:inline-block;
 
-background:var(--green-dark);
+  background:var(--green-soft);
 
-color:white;
+  color:white;
 
-padding:5px 10px;
+  padding:4px 10px;
 
-border-radius:8px;
+  border-radius:8px;
 
-font-size:12px;
+  font-size:13px;
 
-margin:2px;
-
-}
-
-/* CSV BUTTON */
-
-.csv-btn{
-
-background:#4F6354;
-
-color:white;
-
-padding:6px 14px;
-
-border-radius:10px;
+  margin:2px;
 
 }
 
