@@ -9,7 +9,309 @@ from pydantic import BaseModel, Field
 # ============================================================
 # CONFIGURAÇÃO DA PÁGINA
 # ============================================================
-st.set_page_config(page_title="Metanálise / Temática AI", page_icon="📖", layout="wide")
+st.set_page_config(
+    page_title="Análise Qualitativa AI",
+    page_icon="📖",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+# ============================================================
+# IDENTIDADE VISUAL (PALETA + FONTES)
+# ============================================================
+st.markdown(
+    """
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Open+Sans:wght@300;400;600;700&family=Roboto:wght@300;400;500;700&family=Work+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --brown:#5E412F;
+    --cream:#FCEBB6;
+    --mint:#78C0A8;
+    --orange:#F07818;
+    --gold:#F0A830;
+
+    --text:#111827;
+    --muted:#6b7280;
+    --line:#e5e7eb;
+    --line2:#eef2f7;
+    --panel:#ffffff;
+    --shadow: 0 10px 25px rgba(17,24,39,0.06);
+    --shadow2: 0 2px 10px rgba(17,24,39,0.05);
+    --radius: 18px;
+  }
+
+  /* ====== FUNDO GERAL ====== */
+  html, body { background: var(--cream) !important; }
+  .stApp { background: var(--cream) !important; color: var(--text) !important; }
+  * { font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+  /* ====== REMOVE TOPO DEFAULT / AJUSTA CONTAINER ====== */
+  section.main > div { padding-top: 24px !important; }
+  .block-container { max-width: 1320px; padding-top: 16px; padding-bottom: 40px; }
+
+  /* ====== PAINEL PRINCIPAL (CARD GIGANTE) ====== */
+  .qa-shell{
+    background: var(--panel);
+    border: 1px solid rgba(17,24,39,0.06);
+    border-radius: calc(var(--radius) + 6px);
+    box-shadow: var(--shadow);
+    padding: 26px 26px 18px 26px;
+  }
+
+  /* ====== CABEÇALHO ====== */
+  .qa-title{
+    font-family: "Josefin Sans", sans-serif;
+    font-weight: 700;
+    font-size: 44px;
+    line-height: 1.05;
+    color: var(--brown);
+    letter-spacing: -0.02em;
+    margin: 0 0 10px 0;
+  }
+  .qa-subtitle{
+    color: var(--muted);
+    font-size: 15px;
+    margin: 0 0 18px 0;
+  }
+  .qa-badge{
+    display:inline-flex;
+    gap:10px;
+    align-items:center;
+    border: 1px solid rgba(17,24,39,0.08);
+    background: rgba(120,192,168,0.16);
+    color: var(--brown);
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-family: "Work Sans", sans-serif;
+    font-size: 12px;
+  }
+
+  /* ====== INPUTS ====== */
+  textarea, input, .stTextInput > div > div > input {
+    background: #fff !important;
+    color: var(--text) !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(17,24,39,0.10) !important;
+  }
+  textarea:focus, input:focus {
+    border-color: rgba(240,120,24,0.55) !important;
+    box-shadow: 0 0 0 4px rgba(240,120,24,0.12) !important;
+  }
+
+  /* ====== RADIO ====== */
+  .stRadio label {
+    font-family: "Work Sans", sans-serif !important;
+    font-weight: 600 !important;
+    color: var(--text) !important;
+  }
+
+  /* ====== FILE UPLOADER ====== */
+  [data-testid="stFileUploader"]{
+    border-radius: var(--radius) !important;
+    border: 1px dashed rgba(17,24,39,0.18) !important;
+    background: rgba(252,235,182,0.35) !important;
+    padding: 14px !important;
+  }
+
+  /* ====== BOTÃO PRINCIPAL ====== */
+  .stButton > button {
+    background: linear-gradient(135deg, var(--orange), var(--gold)) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 14px !important;
+    padding: 12px 18px !important;
+    font-family: "Work Sans", sans-serif !important;
+    font-weight: 800 !important;
+    letter-spacing: .01em !important;
+    box-shadow: 0 12px 18px rgba(240,120,24,0.18) !important;
+    transition: transform .08s ease, box-shadow .12s ease;
+  }
+  .stButton > button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 22px rgba(240,120,24,0.22) !important;
+  }
+  .stButton > button:disabled { opacity: 0.55 !important; }
+
+  /* ====== DOWNLOAD BUTTON ====== */
+  div[data-testid="stDownloadButton"] > button {
+    border: 1px solid rgba(17,24,39,0.10) !important;
+    background: #fff !important;
+    color: var(--brown) !important;
+    border-radius: 14px !important;
+    padding: 10px 14px !important;
+    font-weight: 800 !important;
+    font-family: "Work Sans", sans-serif !important;
+    box-shadow: var(--shadow2) !important;
+  }
+  div[data-testid="stDownloadButton"] > button:hover {
+    border-color: rgba(240,120,24,0.35) !important;
+    box-shadow: 0 10px 20px rgba(17,24,39,0.08) !important;
+  }
+
+  /* ====== TABS ====== */
+  button[data-baseweb="tab"]{
+    font-family: "Work Sans", sans-serif !important;
+    font-weight: 800 !important;
+    color: var(--muted) !important;
+  }
+  button[data-baseweb="tab"][aria-selected="true"]{
+    color: var(--brown) !important;
+  }
+  div[data-baseweb="tab-highlight"]{
+    background: linear-gradient(90deg, var(--orange), var(--gold)) !important;
+    height: 3px !important;
+    border-radius: 999px !important;
+  }
+
+  /* ====== SCROLLBOX + STICKY HEADER ====== */
+  .scrollbox{
+    max-height: 72vh;
+    overflow-y: auto;
+    padding-right: 10px;
+  }
+  .sticky-header{
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--panel);
+    padding-top: 6px;
+  }
+
+  /* ====== GRID “QUADRO” ====== */
+  .grid-header{
+    display:grid;
+    grid-template-columns: 220px 1.25fr 1.1fr;
+    gap: 18px;
+    padding: 14px 0 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .grid-header .h{
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: .10em;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-family: "Work Sans", sans-serif;
+  }
+  .grid-row{
+    display:grid;
+    grid-template-columns: 220px 1.25fr 1.1fr;
+    gap: 18px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line2);
+  }
+
+  .idblock{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-weight: 800;
+    color: var(--brown);
+    margin-bottom: 6px;
+    word-break: break-word;
+  }
+  .docblock{
+    color: var(--text);
+    font-weight: 700;
+    margin-bottom: 6px;
+    word-break: break-word;
+  }
+  .pagblock{ color: var(--muted); font-size: 12px; }
+
+  .quote{
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.62;
+    white-space: pre-wrap;
+    border-left: 4px solid rgba(120,192,168,0.95);
+    padding-left: 12px;
+  }
+
+  .cj-title{
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: .08em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 4px;
+    margin-bottom: 6px;
+    font-family: "Work Sans", sans-serif;
+  }
+  .cj-text{ color: var(--text); line-height: 1.62; white-space: pre-wrap; }
+
+  .synth-card{
+    background: rgba(252,235,182,0.30);
+    border: 1px solid rgba(17,24,39,0.06);
+    padding: 16px;
+    border-radius: 16px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  /* ====== CARDS (Categorias / Temas) ====== */
+  .cat-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .cat-card{
+    border: 1px solid rgba(17,24,39,0.08);
+    border-radius: 20px;
+    padding: 18px;
+    background: var(--panel);
+    box-shadow: var(--shadow2);
+  }
+  .cat-title{
+    font-family: "Josefin Sans", sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    line-height: 1.15;
+    margin: 0 0 10px 0;
+    color: var(--brown);
+  }
+  .cat-desc{
+    color: var(--text);
+    line-height: 1.65;
+    margin-bottom: 14px;
+    white-space: pre-wrap;
+  }
+  .cat-sub{
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: .10em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-family: "Work Sans", sans-serif;
+  }
+  .chips{ display:flex; flex-wrap: wrap; gap: 10px; }
+  .chip{
+    border: 1px solid rgba(17,24,39,0.08);
+    border-radius: 12px;
+    padding: 6px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 13px;
+    color: var(--brown);
+    background: rgba(120,192,168,0.18);
+  }
+
+  .muted{ color: #9ca3af; font-size: 13px; }
+
+  /* ====== SCROLLBAR ====== */
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(120,192,168,0.9); border-radius: 999px; }
+  ::-webkit-scrollbar-track { background: rgba(17,24,39,0.04); }
+
+  /* Responsivo */
+  @media (max-width: 1100px){
+    .grid-header, .grid-row{ grid-template-columns: 1fr; }
+    .cat-grid{ grid-template-columns: 1fr; }
+    .qa-title{ font-size: 36px; }
+  }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 # ============================================================
 # SESSION STATE
@@ -26,193 +328,6 @@ if "cross_synthesis" not in st.session_state:
     st.session_state.cross_synthesis = {}
 if "cross_synthesis_mode_tag" not in st.session_state:
     st.session_state.cross_synthesis_mode_tag = None
-
-# ============================================================
-# CSS / TEMA CLARO + LAYOUT “QUADRO”
-# ============================================================
-st.markdown(
-    """
-    <style>
-      .stApp { background: #ffffff !important; color: #111827 !important; }
-      h1, h2, h3, h4, h5, h6 { color: #111827 !important; }
-
-      textarea, input, .stTextInput > div > div > input {
-        background-color: #ffffff !important;
-        color: #111827 !important;
-      }
-
-      label, .stMarkdown, .stMarkdown p, .stCaption {
-        color: #111827 !important;
-      }
-
-      /* ===== Botão Download "clean" ===== */
-      div[data-testid="stDownloadButton"] > button {
-        border: 1px solid #e5e7eb !important;
-        background: #ffffff !important;
-        color: #111827 !important;
-        border-radius: 12px !important;
-        padding: 10px 14px !important;
-        font-weight: 700 !important;
-        box-shadow: 0 1px 0 rgba(17,24,39,0.04) !important;
-      }
-      div[data-testid="stDownloadButton"] > button:hover {
-        border-color: #d1d5db !important;
-        background: #f9fafb !important;
-      }
-
-      /* ===== Containers com scroll interno ===== */
-      .scrollbox {
-        max-height: 72vh;
-        overflow-y: auto;
-        padding-right: 10px;
-      }
-
-      /* ===== Cabeçalho "sticky" ===== */
-      .sticky-header {
-        position: sticky;
-        top: 0;
-        z-index: 50;
-        background: #ffffff;
-        padding-top: 6px;
-      }
-
-      /* ====== Grid estilo quadro ====== */
-      .grid-header {
-        display:grid;
-        grid-template-columns: 220px 1.2fr 1.1fr;
-        gap: 18px;
-        padding: 14px 0 10px 0;
-        border-bottom: 1px solid #e5e7eb;
-      }
-      .grid-header .h {
-        font-weight: 800;
-        font-size: 12px;
-        letter-spacing: .08em;
-        color: #6b7280;
-        text-transform: uppercase;
-      }
-
-      .grid-row {
-        display:grid;
-        grid-template-columns: 220px 1.2fr 1.1fr;
-        gap: 18px;
-        padding: 18px 0;
-        border-bottom: 1px solid #eef2f7;
-      }
-
-      .idblock {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-weight: 700;
-        color: #111827;
-        margin-bottom: 6px;
-        word-break: break-word;
-      }
-      .docblock {
-        color:#111827;
-        font-weight:600;
-        margin-bottom: 6px;
-        word-break: break-word;
-      }
-      .pagblock {
-        color:#6b7280;
-        font-size: 12px;
-      }
-
-      .quote {
-        font-style: italic;
-        color:#111827;
-        line-height:1.55;
-        white-space: pre-wrap;
-        border-left: 4px solid #d1d5db;
-        padding-left: 12px;
-      }
-
-      .cj-title {
-        font-weight: 800;
-        font-size: 12px;
-        letter-spacing: .06em;
-        color:#6b7280;
-        text-transform: uppercase;
-        margin-top: 4px;
-        margin-bottom: 6px;
-      }
-      .cj-text {
-        color:#111827;
-        line-height:1.55;
-        white-space: pre-wrap;
-      }
-
-      /* ===== Card de síntese ===== */
-      .synth-card {
-        background:#f3f4f6;
-        padding: 16px;
-        border-radius: 14px;
-        font-weight: 700;
-        color:#111827;
-        line-height:1.5;
-        white-space: pre-wrap;
-      }
-
-      /* ====== Cards grid (Categorias / Temas) ====== */
-      .cat-grid {
-        display:grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px;
-      }
-      .cat-card {
-        border: 1px solid #e5e7eb;
-        border-radius: 18px;
-        padding: 18px;
-        background: #ffffff;
-        box-shadow: 0 1px 0 rgba(17,24,39,0.04);
-      }
-      .cat-title {
-        font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-        font-weight: 800;
-        font-size: 26px;
-        line-height: 1.2;
-        margin-bottom: 10px;
-        color:#111827;
-      }
-      .cat-desc {
-        color:#111827;
-        line-height:1.6;
-        margin-bottom: 14px;
-        white-space: pre-wrap;
-      }
-      .cat-sub {
-        font-weight: 800;
-        font-size: 12px;
-        letter-spacing: .08em;
-        color: #6b7280;
-        text-transform: uppercase;
-        margin-bottom: 10px;
-      }
-      .chips {
-        display:flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-      .chip {
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        padding: 6px 10px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-size: 13px;
-        color:#111827;
-        background:#ffffff;
-      }
-
-      .muted { color: #9ca3af; font-size: 13px; }
-
-      @media (max-width: 1100px) {
-        .grid-header, .grid-row { grid-template-columns: 1fr; }
-        .cat-grid { grid-template-columns: 1fr; }
-      }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
 
 # ============================================================
 # GEMINI CLIENT
@@ -234,21 +349,25 @@ class UnidadeSentido(BaseModel):
     contexto_resumido: str | None = None
     justificativa_fenomenologica: str | None = None
 
+
 class UnidadeSignificado(BaseModel):
     id_unidade: str
     documento: str
     trecho_original: str
     sintese: str
 
+
 class Categoria(BaseModel):
     nome: str
     descricao: str
     unidades_relacionadas: list[str]
 
+
 class PhenomenologicalResult(BaseModel):
     unidades_sentido: list[UnidadeSentido]
     unidades_significado: list[UnidadeSignificado]
     categorias: list[Categoria]
+
 
 # ===== Temática (Braun & Clarke) =====
 class ThematicCode(BaseModel):
@@ -259,15 +378,18 @@ class ThematicCode(BaseModel):
     codigo: str = Field(description="Nome curto do código")
     descricao_codigo: str = Field(description="Definição operacional do código")
 
+
 class ThematicTheme(BaseModel):
     nome: str
     descricao: str
     codigos_relacionados: list[str]
     interpretacao: str
 
+
 class ThematicResult(BaseModel):
     codigos: list[ThematicCode]
     temas: list[ThematicTheme]
+
 
 # ===== Mapeamento =====
 class SystematicAnswer(BaseModel):
@@ -276,18 +398,22 @@ class SystematicAnswer(BaseModel):
     evidencia_textual: str
     pagina: int | None = None
 
+
 class SystematicDocument(BaseModel):
     documento: str
     respostas: list[SystematicAnswer]
 
+
 class SystematicResult(BaseModel):
     documentos: list[SystematicDocument]
+
 
 # ===== Agregado =====
 class AnalysisResult(BaseModel):
     fenomenologico: PhenomenologicalResult | None = None
     tematico: ThematicResult | None = None
     sistematico: SystematicResult | None = None
+
 
 # ============================================================
 # FUNÇÃO: SÍNTESE TRANSVERSAL POR PERGUNTA (sem reprocessar PDFs)
@@ -334,24 +460,50 @@ REGRAS:
     )
     return resp.text
 
+
 # ============================================================
 # HELPERS: modo -> quais análises incluir
 # ============================================================
 def includes_phenom(m: str) -> bool:
     return m in ["Fenomenológico", "Fenomenológico + Mapeamento", "Todos (3 modos)"]
 
+
 def includes_thematic(m: str) -> bool:
     return m in ["Temático (Braun & Clarke)", "Temático + Mapeamento", "Todos (3 modos)"]
 
+
 def includes_systematic(m: str) -> bool:
-    return m in ["Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"]
+    return m in [
+        "Mapeamento Sistemático",
+        "Fenomenológico + Mapeamento",
+        "Temático + Mapeamento",
+        "Todos (3 modos)",
+    ]
+
 
 # ============================================================
-# UI
+# UI — CABEÇALHO PROFISSIONAL
 # ============================================================
-st.title("📖 Análise Qualitativa AI (Fenomenológica • Temática • Mapeamento)")
-st.markdown("Faça upload de múltiplos PDFs e escolha o modo. **Baixar CSV não reinicia a análise.**")
+st.markdown(
+    """
+<div class="qa-shell">
+  <div style="display:flex; justify-content:space-between; gap:14px; align-items:flex-start; flex-wrap:wrap;">
+    <div>
+      <div class="qa-title">📖 Análise Qualitativa AI</div>
+      <div class="qa-subtitle">Fenomenológica • Temática (Braun & Clarke) • Mapeamento • Rastreamento por documento/página • Export CSV</div>
+    </div>
+    <div class="qa-badge">Identidade visual • Paleta + Tipografia</div>
+  </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
 
+st.write("")  # espaçamento
+
+# ============================================================
+# CONTROLES
+# ============================================================
 mode = st.radio(
     "Modo de Análise",
     [
@@ -360,9 +512,9 @@ mode = st.radio(
         "Mapeamento Sistemático",
         "Fenomenológico + Mapeamento",
         "Temático + Mapeamento",
-        "Todos (3 modos)"
+        "Todos (3 modos)",
     ],
-    horizontal=False
+    horizontal=False,
 )
 
 phenom_q = ""
@@ -373,21 +525,21 @@ if includes_phenom(mode):
     phenom_q = st.text_area(
         "Interrogação Fenomenológica",
         placeholder="Ex: Como o fenômeno X se constitui nos textos analisados?",
-        height=110
+        height=110,
     )
 
 if includes_thematic(mode):
     thematic_q = st.text_area(
         "Questão orientadora (Análise Temática – opcional)",
         placeholder="Ex: Quais padrões se repetem sobre métodos, ferramentas, objetivos e resultados?",
-        height=90
+        height=90,
     )
 
 if includes_systematic(mode):
     sys_q = st.text_area(
         "Perguntas para Mapeamento Sistemático (1 por linha)",
         placeholder="1. Qual é o objetivo do estudo?\n2. Qual metodologia é utilizada?\n3. Quais softwares foram utilizados?",
-        height=150
+        height=150,
     )
 
 uploaded_files = st.file_uploader("Corpus Documental (PDFs)", type="pdf", accept_multiple_files=True)
@@ -479,7 +631,6 @@ if run:
             st.session_state.result_data = json.loads(response.text)
             st.session_state.analysis_done = True
             st.session_state.cross_synthesis_mode_tag = f"{mode}|{len(uploaded_files)}|{total_size}"
-
             st.success("Análise concluída com sucesso!")
 
         except Exception as e:
@@ -502,26 +653,25 @@ if st.session_state.analysis_done and st.session_state.result_data:
     n_us = len((phenom_data or {}).get("unidades_sentido", [])) if includes_phenom(render_mode) else 0
     n_um = len((phenom_data or {}).get("unidades_significado", [])) if includes_phenom(render_mode) else 0
     n_cat = len((phenom_data or {}).get("categorias", [])) if includes_phenom(render_mode) else 0
-
     n_cod = len((them_data or {}).get("codigos", [])) if includes_thematic(render_mode) else 0
     n_temas = len((them_data or {}).get("temas", [])) if includes_thematic(render_mode) else 0
 
-    st.header("Resultados")
+    st.markdown(
+        """
+<div class="qa-shell" style="padding:18px 22px;">
+  <div class="qa-badge">Resultados prontos — exporte CSV em cada aba</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
 
     tabs = []
     if includes_phenom(render_mode):
-        tabs.extend([
-            f"☰  Unidades de Sentido ({n_us})",
-            f"📄  Unidades de Significado ({n_um})",
-            f"🏷️  Categorias ({n_cat})"
-        ])
+        tabs.extend([f"☰ Unidades de Sentido ({n_us})", f"📄 Unidades de Significado ({n_um})", f"🏷️ Categorias ({n_cat})"])
     if includes_thematic(render_mode):
-        tabs.extend([
-            f"🧩  Códigos ({n_cod})",
-            f"🗂️  Temas ({n_temas})"
-        ])
+        tabs.extend([f"🧩 Códigos ({n_cod})", f"🗂️ Temas ({n_temas})"])
     if includes_systematic(render_mode):
-        tabs.append("🧭  Mapeamento Sistemático")
+        tabs.append("🧭 Mapeamento")
 
     st_tabs = st.tabs(tabs)
     tab_idx = 0
@@ -544,7 +694,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         df_us.to_csv(index=False).encode("utf-8"),
                         "unidades_sentido.csv",
                         "text/csv",
-                        use_container_width=True
+                        use_container_width=True,
                     )
 
                 st.markdown(
@@ -558,7 +708,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         </div>
                       </div>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
                 for _, r in df_us.iterrows():
@@ -572,9 +722,9 @@ if st.session_state.analysis_done and st.session_state.result_data:
 
                     cj_html = ""
                     if ctx:
-                        cj_html += f'<div class="cj-title">CONTEXTO:</div><div class="cj-text">{ctx}</div><br/>'
+                        cj_html += f'<div class="cj-title">CONTEXTO</div><div class="cj-text">{ctx}</div><br/>'
                     if jus:
-                        cj_html += f'<div class="cj-title">JUSTIFICATIVA:</div><div class="cj-text">{jus}</div>'
+                        cj_html += f'<div class="cj-title">JUSTIFICATIVA</div><div class="cj-text">{jus}</div>'
                     if not cj_html:
                         cj_html = '<div class="muted">-</div>'
 
@@ -590,7 +740,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                           <div>{cj_html}</div>
                         </div>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
 
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -612,7 +762,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         df_um.to_csv(index=False).encode("utf-8"),
                         "unidades_significado.csv",
                         "text/csv",
-                        use_container_width=True
+                        use_container_width=True,
                     )
 
                 st.markdown(
@@ -622,11 +772,11 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         <div class="grid-header">
                           <div class="h">ID / DOCUMENTO</div>
                           <div class="h">TRECHO ORIGINAL</div>
-                          <div class="h">SÍNTESE DE SIGNIFICADO</div>
+                          <div class="h">SÍNTESE</div>
                         </div>
                       </div>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
                 for _, r in df_um.iterrows():
@@ -645,7 +795,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                           <div class="synth-card">{syn}</div>
                         </div>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
 
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -657,11 +807,16 @@ if st.session_state.analysis_done and st.session_state.result_data:
             if not categorias:
                 st.warning("Nenhuma categoria foi retornada.")
             else:
-                df_cat = pd.DataFrame([{
-                    "nome": c.get("nome"),
-                    "descricao": c.get("descricao"),
-                    "unidades_relacionadas": ", ".join(c.get("unidades_relacionadas", []))
-                } for c in categorias])
+                df_cat = pd.DataFrame(
+                    [
+                        {
+                            "nome": c.get("nome"),
+                            "descricao": c.get("descricao"),
+                            "unidades_relacionadas": ", ".join(c.get("unidades_relacionadas", [])),
+                        }
+                        for c in categorias
+                    ]
+                )
 
                 c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
                 with c1:
@@ -672,7 +827,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         df_cat.to_csv(index=False).encode("utf-8"),
                         "categorias.csv",
                         "text/csv",
-                        use_container_width=True
+                        use_container_width=True,
                     )
 
                 st.markdown('<div class="cat-grid">', unsafe_allow_html=True)
@@ -681,8 +836,9 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     desc = c.get("descricao", "")
                     rel = c.get("unidades_relacionadas", [])
                     chips_html = (
-                        '<div class="chips">' + "".join([f'<span class="chip">{u}</span>' for u in rel]) + '</div>'
-                        if rel else '<div class="muted">-</div>'
+                        '<div class="chips">' + "".join([f'<span class="chip">{u}</span>' for u in rel]) + "</div>"
+                        if rel
+                        else '<div class="muted">-</div>'
                     )
                     st.markdown(
                         f"""
@@ -693,7 +849,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                           {chips_html}
                         </div>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
                 st.markdown("</div>", unsafe_allow_html=True)
         tab_idx += 1
@@ -716,7 +872,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         df_cod.to_csv(index=False).encode("utf-8"),
                         "codigos_tematicos.csv",
                         "text/csv",
-                        use_container_width=True
+                        use_container_width=True,
                     )
 
                 st.markdown(
@@ -730,7 +886,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         </div>
                       </div>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
                 for _, r in df_cod.iterrows():
@@ -743,9 +899,10 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     desc = r.get("descricao_codigo", "")
 
                     cj_html = (
-                        f'<div class="cj-title">CÓDIGO:</div><div class="cj-text">{codigo}</div><br/>'
-                        f'<div class="cj-title">DEFINIÇÃO:</div><div class="cj-text">{desc}</div>'
-                        if (codigo or desc) else '<div class="muted">-</div>'
+                        f'<div class="cj-title">CÓDIGO</div><div class="cj-text">{codigo}</div><br/>'
+                        f'<div class="cj-title">DEFINIÇÃO</div><div class="cj-text">{desc}</div>'
+                        if (codigo or desc)
+                        else '<div class="muted">-</div>'
                     )
 
                     st.markdown(
@@ -760,7 +917,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                           <div>{cj_html}</div>
                         </div>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
 
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -772,12 +929,17 @@ if st.session_state.analysis_done and st.session_state.result_data:
             if not temas:
                 st.warning("Nenhum tema foi retornado.")
             else:
-                df_temas = pd.DataFrame([{
-                    "nome": t.get("nome"),
-                    "descricao": t.get("descricao"),
-                    "interpretacao": t.get("interpretacao"),
-                    "codigos_relacionados": ", ".join(t.get("codigos_relacionados", []))
-                } for t in temas])
+                df_temas = pd.DataFrame(
+                    [
+                        {
+                            "nome": t.get("nome"),
+                            "descricao": t.get("descricao"),
+                            "interpretacao": t.get("interpretacao"),
+                            "codigos_relacionados": ", ".join(t.get("codigos_relacionados", [])),
+                        }
+                        for t in temas
+                    ]
+                )
 
                 c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
                 with c1:
@@ -788,7 +950,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         df_temas.to_csv(index=False).encode("utf-8"),
                         "temas_tematicos.csv",
                         "text/csv",
-                        use_container_width=True
+                        use_container_width=True,
                     )
 
                 st.markdown('<div class="cat-grid">', unsafe_allow_html=True)
@@ -799,8 +961,9 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     rel = t.get("codigos_relacionados", [])
 
                     chips_html = (
-                        '<div class="chips">' + "".join([f'<span class="chip">{u}</span>' for u in rel]) + '</div>'
-                        if rel else '<div class="muted">-</div>'
+                        '<div class="chips">' + "".join([f'<span class="chip">{u}</span>' for u in rel]) + "</div>"
+                        if rel
+                        else '<div class="muted">-</div>'
                     )
 
                     st.markdown(
@@ -814,7 +977,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                           {chips_html}
                         </div>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
                 st.markdown("</div>", unsafe_allow_html=True)
         tab_idx += 1
@@ -829,13 +992,15 @@ if st.session_state.analysis_done and st.session_state.result_data:
                 rows_long = []
                 for doc in docs:
                     for ans in doc.get("respostas", []):
-                        rows_long.append({
-                            "Documento": doc.get("documento"),
-                            "Pergunta": ans.get("pergunta"),
-                            "Resposta": ans.get("resposta"),
-                            "Evidência": ans.get("evidencia_textual"),
-                            "Página": ans.get("pagina"),
-                        })
+                        rows_long.append(
+                            {
+                                "Documento": doc.get("documento"),
+                                "Pergunta": ans.get("pergunta"),
+                                "Resposta": ans.get("resposta"),
+                                "Evidência": ans.get("evidencia_textual"),
+                                "Página": ans.get("pagina"),
+                            }
+                        )
                 df_long = pd.DataFrame(rows_long)
                 st.session_state.df_sys_long = df_long
 
@@ -843,7 +1008,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     "Exportar CSV",
                     df_long.to_csv(index=False).encode("utf-8"),
                     "mapeamento_sistematico.csv",
-                    "text/csv"
+                    "text/csv",
                 )
                 st.caption("Comparação por pergunta + síntese transversal (usa apenas respostas já extraídas).")
 
@@ -866,7 +1031,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                             },
                         )
 
-                        colA, _ = st.columns([1.3, 3.7])
+                        colA, _ = st.columns([1.4, 3.6])
                         with colA:
                             if st.button("Gerar síntese transversal", key=f"sintese_{hash(pergunta)}"):
                                 with st.spinner("Gerando síntese (sem reprocessar PDFs)..."):
@@ -887,7 +1052,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
 
                             st.markdown(
                                 f"""
-                                <div class="grid-row" style="grid-template-columns: 220px 1.2fr 1.1fr;">
+                                <div class="grid-row" style="grid-template-columns: 220px 1.25fr 1.1fr;">
                                   <div>
                                     <div class="docblock">{doc}</div>
                                     <div class="pagblock">{pag_txt}</div>
@@ -896,5 +1061,5 @@ if st.session_state.analysis_done and st.session_state.result_data:
                                   <div class="quote">"{evid}"</div>
                                 </div>
                                 """,
-                                unsafe_allow_html=True
+                                unsafe_allow_html=True,
                             )
