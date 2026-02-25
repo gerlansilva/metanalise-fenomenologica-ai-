@@ -45,13 +45,35 @@ st.markdown(
         color: #111827 !important;
       }
 
-      /* ====== Top bar export ====== */
-      .topbar {
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:16px;
-        margin-bottom:10px;
+      /* ===== Botão Exportar CSV mais "clean" ===== */
+      div[data-testid="stDownloadButton"] > button {
+        border: 1px solid #e5e7eb !important;
+        background: #ffffff !important;
+        color: #111827 !important;
+        border-radius: 12px !important;
+        padding: 10px 14px !important;
+        font-weight: 700 !important;
+        box-shadow: 0 1px 0 rgba(17,24,39,0.04) !important;
+      }
+      div[data-testid="stDownloadButton"] > button:hover {
+        border-color: #d1d5db !important;
+        background: #f9fafb !important;
+      }
+
+      /* ===== Containers com scroll interno ===== */
+      .scrollbox {
+        max-height: 72vh;
+        overflow-y: auto;
+        padding-right: 10px;
+      }
+
+      /* ===== Cabeçalho "sticky" ===== */
+      .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: #ffffff;
+        padding-top: 6px;
       }
 
       /* ====== Table-like layout ====== */
@@ -194,6 +216,11 @@ st.markdown(
         font-size: 13px;
         color:#111827;
         background:#ffffff;
+      }
+
+      .muted {
+        color: #9ca3af;
+        font-size: 13px;
       }
 
       /* Responsivo */
@@ -438,7 +465,6 @@ if run:
 
             st.session_state.result_data = json.loads(response.text)
             st.session_state.analysis_done = True
-
             st.session_state.cross_synthesis_mode_tag = f"{mode}|{len(uploaded_files)}|{total_size}"
 
             st.success("Análise concluída com sucesso!")
@@ -459,7 +485,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
     phenom_data = result_data if render_mode == "Fenomenológico" else (result_data.get("fenomenologico") or {})
     sys_data = result_data if render_mode == "Mapeamento Sistemático" else (result_data.get("sistematico") or {})
 
-    # Contagens para títulos das abas (como no screenshot)
+    # Contagens para títulos das abas
     n_us = len((phenom_data or {}).get("unidades_sentido", [])) if render_mode in ["Fenomenológico", "Ambos"] else 0
     n_um = len((phenom_data or {}).get("unidades_significado", [])) if render_mode in ["Fenomenológico", "Ambos"] else 0
     n_cat = len((phenom_data or {}).get("categorias", [])) if render_mode in ["Fenomenológico", "Ambos"] else 0
@@ -468,15 +494,15 @@ if st.session_state.analysis_done and st.session_state.result_data:
 
     tabs = []
     if render_mode in ["Fenomenológico", "Ambos"]:
-        tabs.extend([f"Unidades de Sentido ({n_us})", f"Unidades de Significado ({n_um})", f"Categorias ({n_cat})"])
+        tabs.extend([f"☰  Unidades de Sentido ({n_us})", f"📄  Unidades de Significado ({n_um})", f"🏷️  Categorias ({n_cat})"])
     if render_mode in ["Mapeamento Sistemático", "Ambos"]:
-        tabs.append("Mapeamento Sistemático")
+        tabs.append("🧭  Mapeamento Sistemático")
 
     st_tabs = st.tabs(tabs)
     tab_idx = 0
 
     # ============================================================
-    # FENOMENOLÓGICO — ESTILO “QUADRO” DA IMAGEM
+    # FENOMENOLÓGICO — ESTILO “QUADRO” + STICKY HEADER
     # ============================================================
     if render_mode in ["Fenomenológico", "Ambos"]:
         # ---------- Aba: Unidades de Sentido ----------
@@ -487,27 +513,28 @@ if st.session_state.analysis_done and st.session_state.result_data:
             else:
                 df_us = pd.DataFrame(unidades_sentido)
 
-                # Top bar com export
-                c1, c2 = st.columns([6, 1.6])
+                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
                 with c1:
                     st.caption("ID/DOC/PÁG • Citação literal • Contexto & Justificativa")
                 with c2:
                     csv = df_us.to_csv(index=False).encode("utf-8")
-                    st.download_button("⬇️ Exportar CSV", csv, "unidades_sentido.csv", "text/csv", use_container_width=True)
+                    st.download_button("Exportar CSV", csv, "unidades_sentido.csv", "text/csv", use_container_width=True)
 
-                # Cabeçalho
+                # Scrollbox + sticky header
                 st.markdown(
                     """
-                    <div class="grid-header">
-                      <div class="h">ID / DOC / PÁG</div>
-                      <div class="h">CITAÇÃO LITERAL</div>
-                      <div class="h">CONTEXTO &amp; JUSTIFICATIVA</div>
-                    </div>
+                    <div class="scrollbox">
+                      <div class="sticky-header">
+                        <div class="grid-header">
+                          <div class="h">ID / DOC / PÁG</div>
+                          <div class="h">CITAÇÃO LITERAL</div>
+                          <div class="h">CONTEXTO &amp; JUSTIFICATIVA</div>
+                        </div>
+                      </div>
                     """,
                     unsafe_allow_html=True
                 )
 
-                # Linhas
                 for _, r in df_us.iterrows():
                     uid = r.get("id_unidade", "")
                     doc = r.get("documento", "")
@@ -541,6 +568,8 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         unsafe_allow_html=True
                     )
 
+                st.markdown("</div>", unsafe_allow_html=True)
+
         tab_idx += 1
 
         # ---------- Aba: Unidades de Significado ----------
@@ -551,20 +580,23 @@ if st.session_state.analysis_done and st.session_state.result_data:
             else:
                 df_um = pd.DataFrame(unidades_sig)
 
-                c1, c2 = st.columns([6, 1.6])
+                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
                 with c1:
                     st.caption("ID/Documento • Trecho original • Síntese de significado")
                 with c2:
                     csv2 = df_um.to_csv(index=False).encode("utf-8")
-                    st.download_button("⬇️ Exportar CSV", csv2, "unidades_significado.csv", "text/csv", use_container_width=True)
+                    st.download_button("Exportar CSV", csv2, "unidades_significado.csv", "text/csv", use_container_width=True)
 
                 st.markdown(
                     """
-                    <div class="grid-header-sig">
-                      <div class="h">ID / DOCUMENTO</div>
-                      <div class="h">TRECHO ORIGINAL</div>
-                      <div class="h">SÍNTESE DE SIGNIFICADO</div>
-                    </div>
+                    <div class="scrollbox">
+                      <div class="sticky-header">
+                        <div class="grid-header-sig">
+                          <div class="h">ID / DOCUMENTO</div>
+                          <div class="h">TRECHO ORIGINAL</div>
+                          <div class="h">SÍNTESE DE SIGNIFICADO</div>
+                        </div>
+                      </div>
                     """,
                     unsafe_allow_html=True
                 )
@@ -589,6 +621,8 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         unsafe_allow_html=True
                     )
 
+                st.markdown("</div>", unsafe_allow_html=True)
+
         tab_idx += 1
 
         # ---------- Aba: Categorias ----------
@@ -605,12 +639,12 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     } for c in categorias]
                 )
 
-                c1, c2 = st.columns([6, 1.6])
+                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
                 with c1:
                     st.caption("Categorias fenomenológicas (cards)")
                 with c2:
                     csv3 = df_cat.to_csv(index=False).encode("utf-8")
-                    st.download_button("⬇️ Exportar CSV", csv3, "categorias.csv", "text/csv", use_container_width=True)
+                    st.download_button("Exportar CSV", csv3, "categorias.csv", "text/csv", use_container_width=True)
 
                 st.markdown('<div class="cat-grid">', unsafe_allow_html=True)
                 for c in categorias:
@@ -618,7 +652,6 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     desc = c.get("descricao", "")
                     rel = c.get("unidades_relacionadas", [])
 
-                    chips_html = ""
                     if rel:
                         chips_html = '<div class="chips">' + "".join([f'<span class="chip">{u}</span>' for u in rel]) + '</div>'
                     else:
@@ -640,7 +673,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
         tab_idx += 1
 
     # ============================================================
-    # MAPEAMENTO SISTEMÁTICO — CARDS + COMPARAÇÃO + SÍNTESE IA
+    # MAPEAMENTO SISTEMÁTICO — COMPARAÇÃO + SÍNTESE IA SEM PDFs
     # ============================================================
     if render_mode in ["Mapeamento Sistemático", "Ambos"]:
         with st_tabs[tab_idx]:
@@ -662,9 +695,9 @@ if st.session_state.analysis_done and st.session_state.result_data:
                 st.session_state.df_sys_long = df_long
 
                 csv_long = df_long.to_csv(index=False).encode("utf-8")
-                st.download_button("⬇️ Baixar CSV (Mapeamento Sistemático)", csv_long, "mapeamento_sistematico.csv", "text/csv")
+                st.download_button("Exportar CSV", csv_long, "mapeamento_sistematico.csv", "text/csv")
 
-                st.caption("Comparação transversal por pergunta + síntese IA (usa apenas respostas extraídas).")
+                st.caption("Comparação por pergunta + síntese transversal (usa apenas respostas já extraídas).")
 
                 perguntas = df_long["Pergunta"].dropna().unique().tolist()
                 st.subheader("Comparação transversal (por pergunta)")
@@ -685,7 +718,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                             },
                         )
 
-                        colA, colB = st.columns([1.3, 3.7])
+                        colA, _ = st.columns([1.3, 3.7])
                         with colA:
                             if st.button("Gerar síntese transversal", key=f"sintese_{hash(pergunta)}"):
                                 with st.spinner("Gerando síntese (sem reprocessar PDFs)..."):
@@ -696,7 +729,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                             st.markdown("### Síntese transversal")
                             st.write(st.session_state.cross_synthesis[pergunta])
 
-                        st.markdown("### Evidências por documento (cards)")
+                        st.markdown("### Evidências por documento")
                         for _, r in sub.iterrows():
                             doc = str(r.get("Documento", "(sem doc)"))
                             resp = str(r.get("Resposta", "")).strip()
