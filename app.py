@@ -12,7 +12,19 @@ from pydantic import BaseModel, Field
 st.set_page_config(page_title="Metanálise Fenomenológica AI", page_icon="📖", layout="wide")
 
 # =========================
-# Tema claro (fundo branco) + CSS Cards (layout tipo print)
+# Session State (evitar reprocessar ao baixar CSV)
+# =========================
+if "analysis_done" not in st.session_state:
+    st.session_state.analysis_done = False
+if "result_data" not in st.session_state:
+    st.session_state.result_data = None
+if "df_sys_long" not in st.session_state:
+    st.session_state.df_sys_long = None
+if "last_mode" not in st.session_state:
+    st.session_state.last_mode = None
+
+# =========================
+# Tema claro + CSS Cards
 # =========================
 st.markdown(
     """
@@ -35,7 +47,7 @@ st.markdown(
 
       .stButton>button { border-radius: 10px; }
 
-      /* ===== Cards para área de análise (Mapeamento Sistemático) ===== */
+      /* ===== Cards (Mapeamento Sistemático) ===== */
       .header {
         font-weight: 800;
         font-size: 12px;
@@ -50,6 +62,7 @@ st.markdown(
         font-size: 16px;
         color: #111827;
         line-height: 1.25;
+        word-break: break-word;
       }
 
       .card {
@@ -104,7 +117,7 @@ if not api_key:
 client = genai.Client(api_key=api_key)
 
 # =========================
-# Modelos Pydantic para Saída Estruturada
+# Modelos Pydantic (Structured Output)
 # =========================
 class UnidadeSentido(BaseModel):
     id_unidade: str = Field(description="ID único automático, ex: DOC01_P087_US03")
@@ -179,7 +192,7 @@ if mode in ["Fenomenológico", "Ambos"]:
 if mode in ["Mapeamento Sistemático", "Ambos"]:
     sys_q = st.text_area(
         "Perguntas para Mapeamento Sistemático",
-        placeholder="1. Qual é o objetivo do estudo?\n2. Qual o material de análise?\n3. Qual software utilizado?",
+        placeholder="1. Qual é o objetivo do estudo?\n2. Qual o material de análise?\n3. Quais softwares foram utilizados?",
         height=150,
         help="Insira uma pergunta por linha."
     )
@@ -187,9 +200,17 @@ if mode in ["Mapeamento Sistemático", "Ambos"]:
 uploaded_files = st.file_uploader("Corpus Documental (PDFs)", type="pdf", accept_multiple_files=True)
 
 # =========================
-# Execução
+# Executar análise (salva em session_state)
 # =========================
-if st.button("Iniciar Análise do Corpus", type="primary", disabled=not uploaded_files):
+run = st.button("Iniciar Análise do Corpus", type="primary", disabled=not uploaded_files)
+
+if run:
+    # reset do resultado (para forçar nova análise apenas quando clicar)
+    st.session_state.analysis_done = False
+    st.session_state.result_data = None
+    st.session_state.df_sys_long = None
+    st.session_state.last_mode = mode
+
     if mode in ["Fenomenológico", "Ambos"] and not phenom_q.strip():
         st.warning("Por favor, preencha a Interrogação Fenomenológica.")
         st.stop()
@@ -253,207 +274,180 @@ Se o número da página não puder ser identificado com certeza, retorne null pa
                 ),
             )
 
-            st.success("Análise concluída com sucesso!")
             result_data = json.loads(response.text)
 
-            st.header("Resultados da Análise")
+            st.session_state.analysis_done = True
+            st.session_state.result_data = result_data
 
-            tabs = []
-            if mode in ["Fenomenológico", "Ambos"]:
-                tabs.extend(["Unidades de Sentido", "Unidades de Significado", "Categorias"])
-            if mode in ["Mapeamento Sistemático", "Ambos"]:
-                tabs.append("Mapeamento Sistemático")
-
-            st_tabs = st.tabs(tabs)
-
-            phenom_data = result_data if mode == "Fenomenológico" else result_data.get("fenomenologico")
-            sys_data = result_data if mode == "Mapeamento Sistemático" else result_data.get("sistematico")
-
-            tab_idx = 0
-
-            # =========================
-            # FENOMENOLÓGICO
-            # =========================
-            if mode in ["Fenomenológico", "Ambos"] and phenom_data:
-                with st_tabs[tab_idx]:
-                    df_sentido = pd.DataFrame(phenom_data["unidades_sentido"])
-                    st.dataframe(
-                        df_sentido,
-                        use_container_width=True,
-                        height=520,
-                        column_config={
-                            "id_unidade": st.column_config.TextColumn("ID", width="small"),
-                            "documento": st.column_config.TextColumn("Documento", width="medium"),
-                            "pagina": st.column_config.NumberColumn("Página", width="small"),
-                            "citacao_literal": st.column_config.TextColumn("Citação literal", width="large"),
-                            "contexto_resumido": st.column_config.TextColumn("Contexto", width="medium"),
-                            "justificativa_fenomenologica": st.column_config.TextColumn("Justificativa", width="medium"),
-                        },
-                    )
-                    csv = df_sentido.to_csv(index=False).encode("utf-8")
-                    st.download_button("Baixar CSV (Unidades de Sentido)", csv, "unidades_sentido.csv", "text/csv")
-
-                    st.subheader("Detalhes (leitura confortável)")
-                    for _, r in df_sentido.iterrows():
-                        titulo = f"{r.get('id_unidade','(sem id)')} — {r.get('documento','(sem doc)')} (p. {r.get('pagina')})"
-                        with st.expander(titulo):
-                            st.markdown("**Citação literal**")
-                            st.write(r.get("citacao_literal", ""))
-                            if r.get("contexto_resumido"):
-                                st.markdown("**Contexto resumido**")
-                                st.write(r.get("contexto_resumido"))
-                            if r.get("justificativa_fenomenologica"):
-                                st.markdown("**Justificativa fenomenológica**")
-                                st.write(r.get("justificativa_fenomenologica"))
-
-                tab_idx += 1
-
-                with st_tabs[tab_idx]:
-                    df_sig = pd.DataFrame(phenom_data["unidades_significado"])
-                    st.dataframe(
-                        df_sig,
-                        use_container_width=True,
-                        height=520,
-                        column_config={
-                            "id_unidade": st.column_config.TextColumn("ID", width="small"),
-                            "documento": st.column_config.TextColumn("Documento", width="medium"),
-                            "trecho_original": st.column_config.TextColumn("Trecho original", width="large"),
-                            "sintese": st.column_config.TextColumn("Síntese", width="large"),
-                        },
-                    )
-                    csv2 = df_sig.to_csv(index=False).encode("utf-8")
-                    st.download_button("Baixar CSV (Unidades de Significado)", csv2, "unidades_significado.csv", "text/csv")
-
-                    st.subheader("Detalhes")
-                    for _, r in df_sig.iterrows():
-                        titulo = f"{r.get('id_unidade','(sem id)')} — {r.get('documento','(sem doc)')}"
-                        with st.expander(titulo):
-                            st.markdown("**Trecho original**")
-                            st.write(r.get("trecho_original", ""))
-                            st.markdown("**Síntese**")
-                            st.write(r.get("sintese", ""))
-
-                tab_idx += 1
-
-                with st_tabs[tab_idx]:
-                    for cat in phenom_data["categorias"]:
-                        with st.expander(f"📁 {cat['nome']}"):
-                            st.write(cat["descricao"])
-                            st.write("**Unidades Relacionadas:**", ", ".join(cat["unidades_relacionadas"]))
-                tab_idx += 1
-
-            # =========================
-            # MAPEAMENTO SISTEMÁTICO — layout cards (igual ao print)
-            # =========================
-            if mode in ["Mapeamento Sistemático", "Ambos"] and sys_data:
-                with st_tabs[tab_idx]:
-                    docs = sys_data["documentos"]
-
-                    # Visualização
-                    view = st.radio(
-                        "Visualização",
-                        ["Cards (recomendado)", "Tabela longa (para export/triagem)"],
-                        horizontal=True
-                    )
-
-                    # Perguntas únicas (viram colunas nos cards)
-                    perguntas = []
-                    for doc in docs:
-                        for ans in doc["respostas"]:
-                            if ans["pergunta"] not in perguntas:
-                                perguntas.append(ans["pergunta"])
-
-                    if view == "Cards (recomendado)":
-                        # Cabeçalho
-                        header_cols = st.columns([1.2] + [2.0]*len(perguntas))
-                        header_cols[0].markdown('<div class="header">DOCUMENTO</div>', unsafe_allow_html=True)
-                        for i, p in enumerate(perguntas):
-                            header_cols[i+1].markdown(f'<div class="header">{p}</div>', unsafe_allow_html=True)
-
-                        # Linhas
-                        for doc in docs:
-                            row_cols = st.columns([1.2] + [2.0]*len(perguntas))
-                            row_cols[0].markdown(
-                                f'<div class="doc-title">{doc["documento"]}</div>',
-                                unsafe_allow_html=True
-                            )
-
-                            for i, pergunta in enumerate(perguntas):
-                                ans = next((a for a in doc["respostas"] if a["pergunta"] == pergunta), None)
-
-                                if ans:
-                                    pagina = f"PÁG. {ans['pagina']}" if ans.get("pagina") else ""
-                                    resposta = (ans.get("resposta") or "").strip()
-                                    evid = (ans.get("evidencia_textual") or "").strip()
-
-                                    cell_html = f"""
-                                    <div class="card">{resposta}</div>
-                                    <div class="evidence">"{evid}"
-                                      <div class="page">{pagina}</div>
-                                    </div>
-                                    """
-                                else:
-                                    cell_html = '<div class="muted">-</div>'
-
-                                row_cols[i+1].markdown(cell_html, unsafe_allow_html=True)
-
-                            st.markdown('<div class="row-divider"></div>', unsafe_allow_html=True)
-
-                        # Export (em formato longo)
-                        rows_long = []
-                        for doc in docs:
-                            for ans in doc["respostas"]:
-                                rows_long.append({
-                                    "Documento": doc["documento"],
-                                    "Pergunta": ans["pergunta"],
-                                    "Resposta": ans["resposta"],
-                                    "Evidência": ans["evidencia_textual"],
-                                    "Página": ans.get("pagina")
-                                })
-                        df_long = pd.DataFrame(rows_long)
-                        csv_long = df_long.to_csv(index=False).encode("utf-8")
-                        st.download_button("Baixar CSV (Mapeamento - Long)", csv_long, "mapeamento_sistematico_long.csv", "text/csv")
-
-                    else:
-                        # Tabela longa legível
-                        rows_long = []
-                        for doc in docs:
-                            for ans in doc["respostas"]:
-                                rows_long.append({
-                                    "Documento": doc["documento"],
-                                    "Pergunta": ans["pergunta"],
-                                    "Resposta": ans["resposta"],
-                                    "Evidência": ans["evidencia_textual"],
-                                    "Página": ans.get("pagina")
-                                })
-                        df_long = pd.DataFrame(rows_long)
-
-                        st.dataframe(
-                            df_long,
-                            use_container_width=True,
-                            height=650,
-                            column_config={
-                                "Documento": st.column_config.TextColumn("Documento", width="medium"),
-                                "Pergunta": st.column_config.TextColumn("Pergunta", width="medium"),
-                                "Resposta": st.column_config.TextColumn("Resposta", width="large"),
-                                "Evidência": st.column_config.TextColumn("Evidência", width="large"),
-                                "Página": st.column_config.NumberColumn("Página", width="small"),
-                            },
-                        )
-
-                        st.subheader("Detalhes por item")
-                        for _, r in df_long.iterrows():
-                            with st.expander(f"{r['Documento']} — {r['Pergunta']} (p. {r.get('Página')})"):
-                                st.markdown("**Resposta**")
-                                st.write(r["Resposta"])
-                                st.markdown("**Evidência**")
-                                st.write(r["Evidência"])
-
-                        csv_long = df_long.to_csv(index=False).encode("utf-8")
-                        st.download_button("Baixar CSV (Mapeamento - Long)", csv_long, "mapeamento_sistematico_long.csv", "text/csv")
+            st.success("Análise concluída com sucesso!")
 
         except Exception as e:
             if "exceeds the maximum number of tokens allowed" in str(e):
                 st.error("O corpus documental é muito grande (excede o limite de tokens). Por favor, reduza a quantidade de PDFs.")
             else:
                 st.error(f"Erro durante a análise: {e}")
+
+# =========================
+# Render dos resultados (fora do botão)
+# =========================
+if st.session_state.analysis_done and st.session_state.result_data:
+    result_data = st.session_state.result_data
+
+    st.header("Resultados da Análise")
+
+    tabs = []
+    if mode in ["Fenomenológico", "Ambos"]:
+        tabs.extend(["Unidades de Sentido", "Unidades de Significado", "Categorias"])
+    if mode in ["Mapeamento Sistemático", "Ambos"]:
+        tabs.append("Mapeamento Sistemático")
+
+    st_tabs = st.tabs(tabs)
+
+    phenom_data = result_data if mode == "Fenomenológico" else result_data.get("fenomenologico")
+    sys_data = result_data if mode == "Mapeamento Sistemático" else result_data.get("sistematico")
+
+    tab_idx = 0
+
+    # =========================
+    # FENOMENOLÓGICO
+    # =========================
+    if mode in ["Fenomenológico", "Ambos"] and phenom_data:
+        with st_tabs[tab_idx]:
+            df_sentido = pd.DataFrame(phenom_data["unidades_sentido"])
+            st.dataframe(
+                df_sentido,
+                use_container_width=True,
+                height=520,
+                column_config={
+                    "id_unidade": st.column_config.TextColumn("ID", width="small"),
+                    "documento": st.column_config.TextColumn("Documento", width="medium"),
+                    "pagina": st.column_config.NumberColumn("Página", width="small"),
+                    "citacao_literal": st.column_config.TextColumn("Citação literal", width="large"),
+                    "contexto_resumido": st.column_config.TextColumn("Contexto", width="medium"),
+                    "justificativa_fenomenologica": st.column_config.TextColumn("Justificativa", width="medium"),
+                },
+            )
+            csv = df_sentido.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Baixar CSV (Unidades de Sentido)", csv, "unidades_sentido.csv", "text/csv")
+
+            st.subheader("Detalhes (leitura confortável)")
+            for _, r in df_sentido.iterrows():
+                titulo = f"{r.get('id_unidade','(sem id)')} — {r.get('documento','(sem doc)')} (p. {r.get('pagina')})"
+                with st.expander(titulo):
+                    st.markdown("**Citação literal**")
+                    st.write(r.get("citacao_literal", ""))
+                    if r.get("contexto_resumido"):
+                        st.markdown("**Contexto resumido**")
+                        st.write(r.get("contexto_resumido"))
+                    if r.get("justificativa_fenomenologica"):
+                        st.markdown("**Justificativa fenomenológica**")
+                        st.write(r.get("justificativa_fenomenologica"))
+
+        tab_idx += 1
+
+        with st_tabs[tab_idx]:
+            df_sig = pd.DataFrame(phenom_data["unidades_significado"])
+            st.dataframe(
+                df_sig,
+                use_container_width=True,
+                height=520,
+                column_config={
+                    "id_unidade": st.column_config.TextColumn("ID", width="small"),
+                    "documento": st.column_config.TextColumn("Documento", width="medium"),
+                    "trecho_original": st.column_config.TextColumn("Trecho original", width="large"),
+                    "sintese": st.column_config.TextColumn("Síntese", width="large"),
+                },
+            )
+            csv2 = df_sig.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Baixar CSV (Unidades de Significado)", csv2, "unidades_significado.csv", "text/csv")
+
+            st.subheader("Detalhes")
+            for _, r in df_sig.iterrows():
+                titulo = f"{r.get('id_unidade','(sem id)')} — {r.get('documento','(sem doc)')}"
+                with st.expander(titulo):
+                    st.markdown("**Trecho original**")
+                    st.write(r.get("trecho_original", ""))
+                    st.markdown("**Síntese**")
+                    st.write(r.get("sintese", ""))
+
+        tab_idx += 1
+
+        with st_tabs[tab_idx]:
+            for cat in phenom_data["categorias"]:
+                with st.expander(f"📁 {cat['nome']}"):
+                    st.write(cat["descricao"])
+                    st.write("**Unidades Relacionadas:**", ", ".join(cat["unidades_relacionadas"]))
+        tab_idx += 1
+
+    # =========================
+    # MAPEAMENTO SISTEMÁTICO — SOMENTE CARDS + CSV NO TOPO
+    # =========================
+    if mode in ["Mapeamento Sistemático", "Ambos"] and sys_data:
+        with st_tabs[tab_idx]:
+            docs = sys_data["documentos"]
+
+            # df_long (somente para export) — não exibe tabela
+            rows_long = []
+            for doc in docs:
+                for ans in doc["respostas"]:
+                    rows_long.append({
+                        "Documento": doc["documento"],
+                        "Pergunta": ans["pergunta"],
+                        "Resposta": ans["resposta"],
+                        "Evidência": ans["evidencia_textual"],
+                        "Página": ans.get("pagina")
+                    })
+            df_long = pd.DataFrame(rows_long)
+            st.session_state.df_sys_long = df_long
+
+            # CSV no topo (não reprocessa)
+            csv_long = df_long.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "⬇️ Baixar CSV (Mapeamento Sistemático)",
+                csv_long,
+                "mapeamento_sistematico.csv",
+                "text/csv"
+            )
+            st.caption("Resultados abaixo em cards (resposta + evidência + página).")
+
+            # Perguntas únicas (viram colunas)
+            perguntas = []
+            for doc in docs:
+                for ans in doc["respostas"]:
+                    if ans["pergunta"] not in perguntas:
+                        perguntas.append(ans["pergunta"])
+
+            # Cabeçalho
+            header_cols = st.columns([1.2] + [2.0] * len(perguntas))
+            header_cols[0].markdown('<div class="header">DOCUMENTO</div>', unsafe_allow_html=True)
+            for i, p in enumerate(perguntas):
+                header_cols[i + 1].markdown(f'<div class="header">{p}</div>', unsafe_allow_html=True)
+
+            # Linhas
+            for doc in docs:
+                row_cols = st.columns([1.2] + [2.0] * len(perguntas))
+                row_cols[0].markdown(
+                    f'<div class="doc-title">{doc["documento"]}</div>',
+                    unsafe_allow_html=True
+                )
+
+                for i, pergunta in enumerate(perguntas):
+                    ans = next((a for a in doc["respostas"] if a["pergunta"] == pergunta), None)
+
+                    if ans:
+                        pagina = f"PÁG. {ans['pagina']}" if ans.get("pagina") else ""
+                        resposta = (ans.get("resposta") or "").strip()
+                        evid = (ans.get("evidencia_textual") or "").strip()
+
+                        cell_html = f"""
+                        <div class="card">{resposta}</div>
+                        <div class="evidence">"{evid}"
+                          <div class="page">{pagina}</div>
+                        </div>
+                        """
+                    else:
+                        cell_html = '<div class="muted">-</div>'
+
+                    row_cols[i + 1].markdown(cell_html, unsafe_allow_html=True)
+
+                st.markdown('<div class="row-divider"></div>', unsafe_allow_html=True)
