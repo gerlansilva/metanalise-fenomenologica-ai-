@@ -9,153 +9,152 @@ from pydantic import BaseModel, Field
 # ============================================================
 # CONFIGURAÇÃO DA PÁGINA
 # ============================================================
-st.set_page_config(
-    page_title="Análise Qualitativa AI",
-    page_icon="📖",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
-
-# ============================================================
-# IDENTIDADE VISUAL (PALETA + FONTES)
-# ============================================================
 st.markdown("""
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Open+Sans:wght@300;400;600;700&family=Work+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Open+Sans:wght@400;600&family=Work+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
+
 :root{
-  --bg:#E7DFC9;          /* pergaminho médio */
-  --panel:#F1E9D8;       /* creme médio */
-  --panel2:#EDE4D1;      /* creme mais fechado */
-  --line:#C9BFA6;        /* bordas */
-  --text:#2F241C;        /* texto */
-  --muted:#6E6A5E;       /* texto secundário */
-  --accent:#C26A2E;      /* terracota */
-  --accent2:#A35422;     /* terracota escuro */
-  --moss:#6F8A73;        /* musgo */
-  --shadow: 0 10px 26px rgba(47,36,28,0.10);
-  --shadow2: 0 2px 10px rgba(47,36,28,0.08);
-  --radius: 20px;
+
+--bg:#F3EFE7;
+
+--card:#FFFFFF;
+
+--border:#D6CEC2;
+
+--text:#2E2B27;
+
+--muted:#94919A;
+
+--accent:#EA777B;
+
+--accent2:#F19474;
+
+--highlight:#FAB96B;
+
+--secondary:#69A2A8;
+
 }
 
-/* FUNDO */
-html, body { background: var(--bg) !important; }
-.stApp { background: var(--bg) !important; color: var(--text) !important; }
-* { font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+/* fundo */
 
-/* CONTAINER */
-.block-container { max-width: 1320px; padding-top: 22px; padding-bottom: 36px; }
+html, body, .stApp{
+background:var(--bg);
+color:var(--text);
+font-family:"Open Sans";
+}
 
-/* TÍTULO CENTRAL */
+/* titulo */
+
 .qa-title-center{
-  font-family: "Josefin Sans", sans-serif;
-  font-weight: 800;
-  font-size: 52px;
-  letter-spacing: -0.02em;
-  color: var(--text);
-  text-align: center;
-  margin: 6px 0 22px 0;
+font-family:"Josefin Sans";
+font-size:48px;
+font-weight:700;
+text-align:center;
+margin-top:10px;
+margin-bottom:30px;
+color:var(--text);
 }
 
-/* CARD/PAINÉIS */
+/* cards */
+
 .qa-shell{
-  background: var(--panel);
-  border: 1px solid rgba(47,36,28,0.12);
-  border-radius: calc(var(--radius) + 6px);
-  box-shadow: var(--shadow);
-  padding: 18px 20px;
+background:var(--card);
+border-radius:18px;
+padding:20px;
+border:1px solid var(--border);
+box-shadow:0 4px 14px rgba(0,0,0,0.05);
 }
 
-/* INPUTS */
-textarea, input, .stTextInput > div > div > input {
-  background: var(--panel2) !important;
-  color: var(--text) !important;
-  border-radius: 14px !important;
-  border: 1px solid rgba(47,36,28,0.18) !important;
-}
-textarea::placeholder, input::placeholder { color: rgba(110,106,94,0.85) !important; }
-textarea:focus, input:focus {
-  border-color: rgba(194,106,46,0.70) !important;
-  box-shadow: 0 0 0 4px rgba(194,106,46,0.18) !important;
+/* inputs */
+
+textarea, input{
+
+background:#ffffff !important;
+border-radius:12px !important;
+border:1px solid var(--border) !important;
+color:var(--text);
+
 }
 
-/* RADIO / LABELS (garante legibilidade!) */
-.stRadio label, .stMarkdown, label, p, span, div {
-  color: var(--text);
-}
-.stRadio [data-testid="stMarkdownContainer"] p { color: var(--text) !important; }
+/* botão */
 
-/* FILE UPLOADER */
-[data-testid="stFileUploader"]{
-  border-radius: var(--radius) !important;
-  border: 1px dashed rgba(47,36,28,0.25) !important;
-  background: rgba(241,233,216,0.55) !important;
-}
+.stButton > button{
 
-/* BOTÃO PRINCIPAL */
-.stButton > button {
-  background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
-  color: #fff !important;
-  border: none !important;
-  border-radius: 14px !important;
-  padding: 12px 18px !important;
-  font-family: "Work Sans", sans-serif !important;
-  font-weight: 800 !important;
-  box-shadow: 0 14px 22px rgba(194,106,46,0.18) !important;
-}
-.stButton > button:hover { filter: saturate(1.05); transform: translateY(-1px); }
+background:var(--accent);
 
-/* DOWNLOAD BUTTON */
-div[data-testid="stDownloadButton"] > button {
-  border: 1px solid rgba(47,36,28,0.16) !important;
-  background: var(--panel2) !important;
-  color: var(--text) !important;
-  border-radius: 14px !important;
-  font-weight: 800 !important;
-  box-shadow: var(--shadow2) !important;
+color:white;
+
+border:none;
+
+border-radius:12px;
+
+padding:12px 20px;
+
+font-family:"Work Sans";
+
+font-weight:600;
+
 }
 
-/* TABS */
+.stButton > button:hover{
+
+background:var(--accent2);
+
+}
+
+/* tabs */
+
 button[data-baseweb="tab"]{
-  font-family: "Work Sans", sans-serif !important;
-  font-weight: 800 !important;
-  color: rgba(110,106,94,0.95) !important;
+
+color:var(--muted);
+
+font-weight:600;
+
 }
+
 button[data-baseweb="tab"][aria-selected="true"]{
-  color: var(--text) !important;
+
+color:var(--accent);
+
 }
+
 div[data-baseweb="tab-highlight"]{
-  background: linear-gradient(90deg, var(--accent), var(--accent2)) !important;
-  height: 3px !important;
-  border-radius: 999px !important;
+
+background:var(--accent);
+
 }
 
-/* QUOTE */
+/* citações */
+
 .quote{
-  font-style: italic;
-  line-height: 1.62;
-  white-space: pre-wrap;
-  border-left: 4px solid rgba(111,138,115,0.95);
-  padding-left: 12px;
-  color: var(--text);
+
+border-left:4px solid var(--secondary);
+
+padding-left:12px;
+
+font-style:italic;
+
 }
 
-/* CHIPS */
+/* chips */
+
 .chip{
-  border: 1px solid rgba(47,36,28,0.14);
-  border-radius: 12px;
-  padding: 6px 10px;
-  font-size: 13px;
-  color: var(--text);
-  background: rgba(111,138,115,0.22);
+
+background:var(--secondary);
+
+color:white;
+
+padding:4px 10px;
+
+border-radius:8px;
+
+font-size:12px;
+
+margin:2px;
+
 }
 
-/* SCROLLBAR */
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(111,138,115,0.75); border-radius: 999px; }
-::-webkit-scrollbar-track { background: rgba(47,36,28,0.06); }
 </style>
 """, unsafe_allow_html=True)
 # ============================================================
