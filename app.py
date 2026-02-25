@@ -9,152 +9,175 @@ from pydantic import BaseModel, Field
 # ============================================================
 # CONFIGURAÇÃO DA PÁGINA
 # ============================================================
+# --- TEMA UI (Cole logo após st.set_page_config) ---
 st.markdown("""
-<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Open+Sans:wght@400;600&family=Work+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@500;700&family=Open+Sans:wght@400;600;700&family=Work+Sans:wght@500;700&display=swap" rel="stylesheet">
 
 <style>
-
 :root{
+  /* Base neutra */
+  --bg:#F4F1EC;         /* fundo */
+  --card:#FFFFFF;       /* cards */
+  --panel:#ECE6DD;      /* painéis/inputs */
+  --border:#D8D1C7;     /* bordas */
 
---bg:#f1c40f;
+  /* Tipografia */
+  --text:#2B2B2B;       /* texto principal */
+  --muted:#6E6A63;      /* texto secundário */
 
---card:#FFFFFF;
+  /* Identidade */
+  --primary:#C06A3E;    /* botões/ativo */
+  --primaryHover:#D98A5F;
+  --highlight:#E6B98C;  /* destaque suave */
 
---border:#D6CEC2;
+  /* Analíticas (tags/códigos) */
+  --moss:#6F8A73;
+  --slate:#6C8799;
+  --terra:#B8745C;
+  --sand:#C9A66B;
 
---text:#2E2B27;
-
---muted:#94919A;
-
---accent:#EA777B;
-
---accent2:#F19474;
-
---highlight:#FAB96B;
-
---secondary:#69A2A8;
-
+  --shadow: 0 10px 26px rgba(43,43,43,0.10);
+  --shadow2: 0 2px 10px rgba(43,43,43,0.08);
+  --r: 18px;
 }
 
-/* fundo */
+/* Fundo geral */
+html, body { background: var(--bg) !important; }
+.stApp { background: var(--bg) !important; color: var(--text) !important; }
+* { font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
 
-html, body, .stApp{
-background:var(--bg);
-color:var(--text);
-font-family:"Open Sans";
+/* Container */
+.block-container{
+  max-width: 1320px;
+  padding-top: 22px;
+  padding-bottom: 36px;
 }
 
-/* titulo */
-
+/* Título central (use st.markdown com .qa-title-center) */
 .qa-title-center{
-font-family:"Josefin Sans";
-font-size:48px;
-font-weight:700;
-text-align:center;
-margin-top:10px;
-margin-bottom:30px;
-color:var(--text);
+  font-family:"Josefin Sans", sans-serif;
+  font-weight:700;
+  font-size: 52px;
+  letter-spacing:-0.02em;
+  text-align:center;
+  color: var(--text);
+  margin: 6px 0 20px 0;
 }
 
-/* cards */
-
+/* Cards/painéis padrão */
 .qa-shell{
-background:var(--card);
-border-radius:18px;
-padding:20px;
-border:1px solid var(--border);
-box-shadow:0 4px 14px rgba(0,0,0,0.05);
+  background: var(--card);
+  border: 1px solid rgba(43,43,43,0.10);
+  border-radius: calc(var(--r) + 6px);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+}
+.qa-shell-subtle{
+  background: var(--panel);
+  border: 1px solid rgba(43,43,43,0.10);
+  border-radius: calc(var(--r) + 6px);
+  box-shadow: var(--shadow2);
+  padding: 16px 18px;
 }
 
-/* inputs */
+/* Texto secundário */
+.muted{ color: var(--muted) !important; }
 
-textarea, input{
-
-background:#ffffff !important;
-border-radius:12px !important;
-border:1px solid var(--border) !important;
-color:var(--text);
-
+/* Inputs */
+textarea, input, .stTextInput > div > div > input{
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border: 1px solid rgba(43,43,43,0.14) !important;
+  border-radius: 14px !important;
+}
+textarea::placeholder, input::placeholder{
+  color: rgba(110,106,99,0.85) !important;
+}
+textarea:focus, input:focus{
+  border-color: rgba(192,106,62,0.70) !important;
+  box-shadow: 0 0 0 4px rgba(192,106,62,0.18) !important;
 }
 
-/* botão */
+/* File uploader */
+[data-testid="stFileUploader"]{
+  border-radius: calc(var(--r) + 6px) !important;
+  border: 1px dashed rgba(43,43,43,0.22) !important;
+  background: rgba(236,230,221,0.55) !important;
+}
 
+/* Botão principal */
 .stButton > button{
-
-background:var(--accent);
-
-color:white;
-
-border:none;
-
-border-radius:12px;
-
-padding:12px 20px;
-
-font-family:"Work Sans";
-
-font-weight:600;
-
+  background: linear-gradient(135deg, var(--primary), var(--primaryHover)) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 14px !important;
+  padding: 12px 18px !important;
+  font-family: "Work Sans", sans-serif !important;
+  font-weight: 700 !important;
+  box-shadow: 0 14px 22px rgba(192,106,62,0.18) !important;
 }
-
 .stButton > button:hover{
-
-background:var(--accent2);
-
+  filter: saturate(1.05);
+  transform: translateY(-1px);
 }
 
-/* tabs */
+/* Download button */
+div[data-testid="stDownloadButton"] > button{
+  border: 1px solid rgba(43,43,43,0.14) !important;
+  background: var(--card) !important;
+  color: var(--text) !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  box-shadow: var(--shadow2) !important;
+}
 
+/* Tabs */
 button[data-baseweb="tab"]{
-
-color:var(--muted);
-
-font-weight:600;
-
+  font-family: "Work Sans", sans-serif !important;
+  font-weight: 700 !important;
+  color: rgba(110,106,99,0.95) !important;
 }
-
 button[data-baseweb="tab"][aria-selected="true"]{
-
-color:var(--accent);
-
+  color: var(--text) !important;
 }
-
 div[data-baseweb="tab-highlight"]{
-
-background:var(--accent);
-
+  background: linear-gradient(90deg, var(--primary), var(--primaryHover)) !important;
+  height: 3px !important;
+  border-radius: 999px !important;
 }
 
-/* citações */
-
+/* Quote (citações) */
 .quote{
-
-border-left:4px solid var(--secondary);
-
-padding-left:12px;
-
-font-style:italic;
-
+  font-style: italic;
+  line-height: 1.62;
+  white-space: pre-wrap;
+  border-left: 4px solid var(--slate);
+  padding-left: 12px;
+  color: var(--text);
 }
 
-/* chips */
-
+/* Chips / tags (use <span class="chip chip-moss">) */
 .chip{
-
-background:var(--secondary);
-
-color:white;
-
-padding:4px 10px;
-
-border-radius:8px;
-
-font-size:12px;
-
-margin:2px;
-
+  display:inline-block;
+  border: 1px solid rgba(43,43,43,0.12);
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text);
+  background: rgba(230,185,140,0.22); /* highlight suave */
+  margin: 2px 4px 2px 0;
 }
+.chip-moss{ background: rgba(111,138,115,0.22); }
+.chip-slate{ background: rgba(108,135,153,0.20); }
+.chip-terra{ background: rgba(184,116,92,0.18); }
+.chip-sand{ background: rgba(201,166,107,0.22); }
 
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(108,135,153,0.55); border-radius: 999px; }
+::-webkit-scrollbar-track { background: rgba(43,43,43,0.06); }
 </style>
 """, unsafe_allow_html=True)
 # ============================================================
