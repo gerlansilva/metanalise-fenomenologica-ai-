@@ -6,155 +6,278 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 
-# ============================================================
-# CONFIGURAÇÃO DA PÁGINA
-# ============================================================
-# --- TEMA UI (Cole logo após st.set_page_config) ---
+# =========================
+# CONFIG
+# =========================
+st.set_page_config(page_title="Análise Qualitativa AI", page_icon="📖", layout="wide")
+
+# =========================
+# THEME (Sua paleta + tipografia)
+# =========================
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@600;700&family=Open+Sans:wght@400;600&family=Work+Sans:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@600;700&family=Open+Sans:wght@400;600&family=Work+Sans:wght@600;700&display=swap" rel="stylesheet">
 
 <style>
-
 :root{
- --bg:#F4F8F8;
- --card:#FFFFFF;
- --panel:#EDF4F5;
- --border:#D6E2E3;
+ --bg:#F4F8F8;          /* neutro suave (não usa aqua puro) */
+ --card:#FFFFFF;        /* cards */
+ --panel:#EDF4F5;       /* inputs/painéis */
+ --border:#D6E2E3;      /* bordas */
 
- --text:#374B4A;
+ --text:#374B4A;        /* dark slate grey */
  --muted:#6B7C7C;
 
- --primary:#526760;
+ --primary:#526760;     /* granite */
  --primaryHover:#3F5450;
 
- --accent:#88D9E6;
- --category:#8B8BAE;
+ --accent:#88D9E6;      /* frosted blue */
+ --category:#8B8BAE;    /* lavender grey */
 }
 
 html, body, .stApp{
- background:var(--bg);
- color:var(--text);
- font-family:"Open Sans", sans-serif;
+ background:var(--bg) !important;
+ color:var(--text) !important;
+ font-family:"Open Sans", sans-serif !important;
 }
 
 .block-container{
- max-width:1300px;
- padding-top:20px;
+ max-width: 1400px;
+ padding-top: 18px;
+ padding-bottom: 36px;
 }
 
+/* remove espaçamento do header default */
+header[data-testid="stHeader"] { background: transparent; }
+
+/* TÍTULO */
 .qa-title-center{
- font-family:"Josefin Sans";
- font-size:52px;
- text-align:center;
- margin-bottom:25px;
- color:var(--text);
+ font-family:"Josefin Sans", sans-serif;
+ font-size: 52px;
+ font-weight: 700;
+ text-align: center;
+ margin: 8px 0 18px 0;
+ color: var(--text);
 }
 
-/* cards */
+/* “layout Atlas” */
+.qa-layout{
+ display: grid;
+ grid-template-columns: 320px 1fr;
+ gap: 16px;
+ align-items: start;
+}
 
-.qa-card{
- background:var(--card);
- border-radius:16px;
- padding:20px;
- box-shadow:0 4px 14px rgba(0,0,0,.08);
- border:1px solid var(--border);
- margin-bottom:15px;
+.qa-panel{
+ background: var(--card);
+ border: 1px solid var(--border);
+ border-radius: 16px;
+ box-shadow: 0 4px 14px rgba(0,0,0,.07);
+ padding: 14px;
+}
+
+.qa-panel-title{
+ font-family:"Work Sans", sans-serif;
+ font-weight: 700;
+ font-size: 14px;
+ letter-spacing: .02em;
+ color: var(--muted);
+ margin: 0 0 10px 0;
+ text-transform: uppercase;
 }
 
 /* inputs */
-
-textarea, input{
- background:var(--panel)!important;
- border:1px solid var(--border)!important;
- border-radius:10px!important;
+textarea, input, .stTextInput > div > div > input{
+ background: var(--panel) !important;
+ border: 1px solid var(--border) !important;
+ border-radius: 12px !important;
+ color: var(--text) !important;
+}
+textarea:focus, input:focus{
+ border-color: rgba(136,217,230,.95) !important;
+ box-shadow: 0 0 0 4px rgba(136,217,230,.22) !important;
 }
 
-/* botão */
+/* radios/labels */
+label, .stRadio label, .stMarkdown, p, span, div { color: var(--text) !important; }
 
-.stButton button{
-
- background:var(--primary)!important;
- color:white!important;
- border-radius:12px!important;
- border:none!important;
- padding:12px 20px!important;
- font-weight:600!important;
+/* file uploader */
+[data-testid="stFileUploader"]{
+ border-radius: 16px !important;
+ border: 1px dashed rgba(55,75,74,.28) !important;
+ background: rgba(237,244,245,.75) !important;
 }
 
-.stButton button:hover{
- background:var(--primaryHover)!important;
+/* botões (inclui download) */
+.stButton > button, div[data-testid="stDownloadButton"] > button{
+ background: var(--primary) !important;
+ color: #fff !important;
+ border: none !important;
+ border-radius: 12px !important;
+ padding: 10px 16px !important;
+ font-family:"Work Sans", sans-serif !important;
+ font-weight: 700 !important;
+}
+.stButton > button:hover, div[data-testid="stDownloadButton"] > button:hover{
+ background: var(--primaryHover) !important;
 }
 
 /* tabs */
-
 button[data-baseweb="tab"]{
- font-family:"Work Sans";
- font-weight:600;
+ font-family:"Work Sans", sans-serif !important;
+ font-weight: 700 !important;
+ color: rgba(107,124,124,.95) !important;
 }
-
+button[data-baseweb="tab"][aria-selected="true"]{
+ color: var(--text) !important;
+}
 div[data-baseweb="tab-highlight"]{
- background:var(--accent)!important;
- height:3px;
+ background: var(--accent) !important;
+ height: 3px !important;
+ border-radius: 999px !important;
 }
 
-/* citações */
-
-.quote{
- border-left:4px solid var(--accent);
- padding-left:12px;
- font-style:italic;
+/* cards de resultado */
+.qa-card{
+ background: var(--card);
+ border: 1px solid var(--border);
+ border-radius: 16px;
+ box-shadow: 0 3px 12px rgba(0,0,0,.06);
+ padding: 14px 14px 10px 14px;
+ margin-bottom: 12px;
+}
+.qa-card-head{
+ display:flex;
+ justify-content:space-between;
+ align-items:flex-start;
+ gap:10px;
+}
+.qa-doc{
+ font-weight: 700;
+ font-size: 16px;
+ line-height: 1.2;
+}
+.qa-meta{
+ font-size: 12px;
+ color: var(--muted) !important;
+ margin-top: 4px;
+}
+.qa-pill{
+ display:inline-block;
+ background: rgba(139,139,174,.18);
+ border: 1px solid rgba(139,139,174,.25);
+ color: var(--text);
+ padding: 4px 10px;
+ border-radius: 999px;
+ font-size: 12px;
+ font-weight: 700;
+ white-space: nowrap;
+}
+.qa-pill-accent{
+ background: rgba(136,217,230,.22);
+ border-color: rgba(136,217,230,.35);
 }
 
-/* chips */
+/* quote */
+.qa-quote{
+ margin-top: 10px;
+ padding: 10px 12px;
+ border-left: 4px solid var(--accent);
+ background: rgba(237,244,245,.75);
+ border-radius: 12px;
+ font-style: italic;
+ white-space: pre-wrap;
+}
 
-.chip{
+/* bloco de texto */
+.qa-block{
+ margin-top: 10px;
+ padding: 10px 12px;
+ background: rgba(237,244,245,.75);
+ border: 1px solid rgba(214,226,227,.9);
+ border-radius: 12px;
+}
 
- background:rgba(139,139,174,.15);
- color:var(--text);
- padding:5px 10px;
- border-radius:8px;
- font-size:13px;
+/* tabela “mapeamento” estilo grid (colunas fixas) */
+.qa-grid-header{
+ display:grid;
+ grid-template-columns: 240px 1fr 1fr 1fr;
+ gap: 12px;
+ padding: 8px 8px;
+ color: var(--muted);
+ font-weight: 800;
+ font-family:"Work Sans";
+ font-size: 12px;
+ text-transform: uppercase;
+}
+.qa-grid-row{
+ display:grid;
+ grid-template-columns: 240px 1fr 1fr 1fr;
+ gap: 12px;
+ padding: 10px 8px;
+ border-top: 1px solid rgba(214,226,227,.9);
+ align-items:start;
+}
+.qa-cell{
+ background: rgba(237,244,245,.65);
+ border: 1px solid rgba(214,226,227,.9);
+ border-radius: 14px;
+ padding: 10px 12px;
+ min-height: 74px;
+}
+.qa-doccell{
+ background: transparent;
+ border: none;
+ padding: 0;
+}
+.qa-doctitle{
+ font-weight: 800;
+ font-size: 15px;
+ line-height: 1.25;
+}
+.qa-ev{
+ margin-top: 10px;
+ font-style: italic;
+ border-left: 4px solid rgba(139,139,174,.55);
+ padding-left: 10px;
+ color: var(--text);
+ white-space: pre-wrap;
+}
+.qa-page{
+ margin-top: 8px;
+ color: var(--muted);
+ font-size: 12px;
+ font-weight: 700;
+}
+
+/* responsivo */
+@media (max-width: 1100px){
+  .qa-layout{ grid-template-columns: 1fr; }
+  .qa-grid-header, .qa-grid-row{ grid-template-columns: 1fr; }
 }
 
 </style>
 """, unsafe_allow_html=True)
-# ============================================================
-# SESSION STATE
-# ============================================================
-if "analysis_done" not in st.session_state:
-    st.session_state.analysis_done = False
-if "result_data" not in st.session_state:
-    st.session_state.result_data = None
-if "df_sys_long" not in st.session_state:
-    st.session_state.df_sys_long = None
-if "last_mode" not in st.session_state:
-    st.session_state.last_mode = None
-if "cross_synthesis" not in st.session_state:
-    st.session_state.cross_synthesis = {}
-if "cross_synthesis_mode_tag" not in st.session_state:
-    st.session_state.cross_synthesis_mode_tag = None
 
-# ============================================================
+# =========================
 # GEMINI CLIENT
-# ============================================================
+# =========================
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
-    st.error("⚠️ Variável de ambiente GEMINI_API_KEY não encontrada. Configure-a para continuar.")
+    st.warning("⚠️ Variável de ambiente GEMINI_API_KEY não encontrada. Configure-a para continuar.")
     st.stop()
 client = genai.Client(api_key=api_key)
 
-# ============================================================
-# MODELOS PYDANTIC
-# ============================================================
+# =========================
+# Pydantic Schemas
+# =========================
 class UnidadeSentido(BaseModel):
-    id_unidade: str
-    documento: str
-    pagina: int | None
-    citacao_literal: str
+    id_unidade: str = Field(description="ID único automático, ex: DOC01_P087_US03")
+    documento: str = Field(description="Nome do arquivo PDF")
+    pagina: int | None = Field(description="Número da página onde o trecho aparece, null se não encontrado")
+    citacao_literal: str = Field(description="Trecho exato do texto, sem alterações")
     contexto_resumido: str | None = None
     justificativa_fenomenologica: str | None = None
-
 
 class UnidadeSignificado(BaseModel):
     id_unidade: str
@@ -162,704 +285,422 @@ class UnidadeSignificado(BaseModel):
     trecho_original: str
     sintese: str
 
-
 class Categoria(BaseModel):
     nome: str
     descricao: str
     unidades_relacionadas: list[str]
-
 
 class PhenomenologicalResult(BaseModel):
     unidades_sentido: list[UnidadeSentido]
     unidades_significado: list[UnidadeSignificado]
     categorias: list[Categoria]
 
-
-# ===== Temática (Braun & Clarke) =====
-class ThematicCode(BaseModel):
-    id_codigo: str = Field(description="ID único, ex: DOC01_P014_COD03")
-    documento: str
-    pagina: int | None
-    trecho: str = Field(description="Trecho literal exato (sem parafrasear)")
-    codigo: str = Field(description="Nome curto do código")
-    descricao_codigo: str = Field(description="Definição operacional do código")
-
-
-class ThematicTheme(BaseModel):
-    nome: str
-    descricao: str
-    codigos_relacionados: list[str]
-    interpretacao: str
-
-
-class ThematicResult(BaseModel):
-    codigos: list[ThematicCode]
-    temas: list[ThematicTheme]
-
-
-# ===== Mapeamento =====
 class SystematicAnswer(BaseModel):
     pergunta: str
     resposta: str
     evidencia_textual: str
     pagina: int | None = None
 
-
 class SystematicDocument(BaseModel):
     documento: str
     respostas: list[SystematicAnswer]
 
-
 class SystematicResult(BaseModel):
     documentos: list[SystematicDocument]
 
-
-# ===== Agregado =====
 class AnalysisResult(BaseModel):
     fenomenologico: PhenomenologicalResult | None = None
-    tematico: ThematicResult | None = None
     sistematico: SystematicResult | None = None
 
+# =========================
+# Helpers
+# =========================
+def parse_questions(multiline: str) -> list[str]:
+    qs = []
+    for line in (multiline or "").splitlines():
+        l = line.strip()
+        if not l:
+            continue
+        # remove "1. " etc
+        if len(l) > 2 and l[0].isdigit() and l[1] in [".", ")"]:
+            l = l[2:].strip()
+        qs.append(l)
+    return qs
 
-# ============================================================
-# FUNÇÃO: SÍNTESE TRANSVERSAL POR PERGUNTA (sem reprocessar PDFs)
-# ============================================================
-def gerar_sintese_transversal(pergunta: str, df_sub: pd.DataFrame) -> str:
-    linhas = []
-    for _, r in df_sub.iterrows():
-        doc = str(r.get("Documento", "")).strip()
-        resp = str(r.get("Resposta", "")).strip()
-        evid = str(r.get("Evidência", "")).strip()
-        pag = r.get("Página", None)
-        pag_str = f"{pag}" if (pag is not None and str(pag).strip() != "") else "null"
-        linhas.append(
-            f"- DOCUMENTO: {doc}\n"
-            f"  RESPOSTA: {resp}\n"
-            f"  EVIDÊNCIA: \"{evid}\"\n"
-            f"  PÁGINA: {pag_str}\n"
+def safe_get(d, key, default):
+    if isinstance(d, dict) and key in d:
+        return d[key]
+    return default
+
+# guarda resultado em sessão para baixar CSV sem reprocessar
+if "analysis_result" not in st.session_state:
+    st.session_state.analysis_result = None
+if "last_mode" not in st.session_state:
+    st.session_state.last_mode = None
+
+# =========================
+# HEADER
+# =========================
+st.markdown('<div class="qa-title-center">📖 Análise Qualitativa AI</div>', unsafe_allow_html=True)
+
+# =========================
+# LAYOUT (estilo Atlas: sidebar + conteúdo)
+# =========================
+left, right = st.columns([0.32, 0.68], gap="large")
+
+with left:
+    st.markdown('<div class="qa-panel"><div class="qa-panel-title">Configurações</div>', unsafe_allow_html=True)
+
+    mode = st.radio(
+        "Modo de Análise",
+        [
+            "Fenomenológico",
+            "Temático (Braun & Clarke)",
+            "Mapeamento Sistemático",
+            "Fenomenológico + Mapeamento",
+            "Temático + Mapeamento",
+            "Todos (3 modos)",
+        ],
+        index=0,
+        help="Escolha o modo. Para mapeamento, insira perguntas (1 por linha)."
+    )
+
+    phenom_q = ""
+    thematic_q = ""
+    sys_q = ""
+
+    if mode in ["Fenomenológico", "Fenomenológico + Mapeamento", "Todos (3 modos)"]:
+        phenom_q = st.text_area(
+            "Interrogação Fenomenológica",
+            placeholder="Ex: Como o fenômeno X se constitui nos textos analisados?",
+            height=110
         )
 
-    prompt = f"""
-Você está comparando resultados entre documentos para a MESMA pergunta, com base apenas nas respostas e evidências abaixo.
+    if mode in ["Temático (Braun & Clarke)", "Temático + Mapeamento", "Todos (3 modos)"]:
+        thematic_q = st.text_area(
+            "Questão orientadora (Temática) — opcional",
+            placeholder="Ex: Quais padrões se repetem sobre objetivos, métodos e resultados?",
+            height=90
+        )
 
-PERGUNTA:
-{pergunta}
+    if mode in ["Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"]:
+        sys_q = st.text_area(
+            "Perguntas para Mapeamento (1 por linha)",
+            placeholder="1. Qual é o objetivo do estudo?\n2. Qual metodologia é utilizada?\n3. Quais softwares foram utilizados?",
+            height=130
+        )
 
-RESPOSTAS POR DOCUMENTO:
-{chr(10).join(linhas)}
+    uploaded_files = st.file_uploader("Corpus Documental (PDFs)", type="pdf", accept_multiple_files=True)
 
-TAREFAS (nesta ordem):
-1) CONVERGÊNCIAS (bullets)
-2) DIVERGÊNCIAS (bullets)
-3) DISTRIBUIÇÃO/CONTAGEM (Item — Nº de documentos). Use "não informado" quando apropriado.
-4) SÍNTESE INTERPRETATIVA (6–10 linhas), em português acadêmico claro.
+    # validações rápidas
+    needs_phenom = mode in ["Fenomenológico", "Fenomenológico + Mapeamento", "Todos (3 modos)"]
+    needs_sys = mode in ["Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"]
+    needs_thematic = mode in ["Temático (Braun & Clarke)", "Temático + Mapeamento", "Todos (3 modos)"]
 
-REGRAS:
-- Não invente informação.
-- Não cite nada que não esteja nas respostas/evidências.
-- Se houver contradição, explicite como divergência.
-"""
-    resp = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=[prompt],
-        config=types.GenerateContentConfig(temperature=0.2),
-    )
-    return resp.text
+    can_run = bool(uploaded_files) and (not needs_phenom or phenom_q.strip()) and (not needs_sys or sys_q.strip() or mode.startswith("Temático"))
 
+    run = st.button("Iniciar Análise do Corpus", type="primary", disabled=not bool(uploaded_files))
 
-# ============================================================
-# HELPERS: modo -> quais análises incluir
-# ============================================================
-def includes_phenom(m: str) -> bool:
-    return m in ["Fenomenológico", "Fenomenológico + Mapeamento", "Todos (3 modos)"]
+    st.markdown("</div>", unsafe_allow_html=True)
 
+with right:
+    st.markdown('<div class="qa-panel"><div class="qa-panel-title">Resultados</div>', unsafe_allow_html=True)
 
-def includes_thematic(m: str) -> bool:
-    return m in ["Temático (Braun & Clarke)", "Temático + Mapeamento", "Todos (3 modos)"]
-
-
-def includes_systematic(m: str) -> bool:
-    return m in [
-        "Mapeamento Sistemático",
-        "Fenomenológico + Mapeamento",
-        "Temático + Mapeamento",
-        "Todos (3 modos)",
-    ]
-
-
-# ============================================================
-# UI — CABEÇALHO PROFISSIONAL
-# ============================================================
-st.markdown(
-"""
-<div class="qa-title-center">
-📖 Análise Qualitativa AI
-</div>
-""",
-unsafe_allow_html=True
-)
-
-st.write("")  # espaçamento
-
-# ============================================================
-# CONTROLES
-# ============================================================
-mode = st.radio(
-    "Modo de Análise",
-    [
-        "Fenomenológico",
-        "Temático (Braun & Clarke)",
-        "Mapeamento Sistemático",
-        "Fenomenológico + Mapeamento",
-        "Temático + Mapeamento",
-        "Todos (3 modos)",
-    ],
-    horizontal=False,
-)
-
-phenom_q = ""
-thematic_q = ""
-sys_q = ""
-
-if includes_phenom(mode):
-    phenom_q = st.text_area(
-        "Interrogação Fenomenológica",
-        placeholder="Ex: Como o fenômeno X se constitui nos textos analisados?",
-        height=110,
-    )
-
-if includes_thematic(mode):
-    thematic_q = st.text_area(
-        "Questão orientadora (Análise Temática – opcional)",
-        placeholder="Ex: Quais padrões se repetem sobre métodos, ferramentas, objetivos e resultados?",
-        height=90,
-    )
-
-if includes_systematic(mode):
-    sys_q = st.text_area(
-        "Perguntas para Mapeamento Sistemático (1 por linha)",
-        placeholder="1. Qual é o objetivo do estudo?\n2. Qual metodologia é utilizada?\n3. Quais softwares foram utilizados?",
-        height=150,
-    )
-
-uploaded_files = st.file_uploader("Corpus Documental (PDFs)", type="pdf", accept_multiple_files=True)
-
-run = st.button("Iniciar Análise do Corpus", type="primary", disabled=not uploaded_files)
-
-# ============================================================
-# EXECUTAR ANÁLISE
-# ============================================================
-if run:
-    st.session_state.analysis_done = False
-    st.session_state.result_data = None
-    st.session_state.df_sys_long = None
-    st.session_state.last_mode = mode
-    st.session_state.cross_synthesis = {}
-    st.session_state.cross_synthesis_mode_tag = None
-
-    if includes_phenom(mode) and not phenom_q.strip():
-        st.warning("Por favor, preencha a Interrogação Fenomenológica.")
-        st.stop()
-
-    if includes_systematic(mode) and not sys_q.strip():
-        st.warning("Por favor, preencha as Perguntas para Mapeamento Sistemático.")
-        st.stop()
-
-    total_size = sum([f.size for f in uploaded_files])
-    if total_size > 15 * 1024 * 1024:
-        st.error(f"O tamanho total ({total_size / 1024 / 1024:.2f} MB) excede 15 MB. Reduza a quantidade de PDFs.")
-        st.stop()
-
-    with st.spinner("Analisando o corpus documental..."):
-        try:
-            gemini_files = [
-                types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf")
-                for f in uploaded_files
-            ]
-
-            prompt_text = "Leia todos os PDFs anexados como um corpus único.\n\n"
-
-            if includes_phenom(mode):
-                prompt_text += "=== MODO FENOMENOLÓGICO ===\n"
-                prompt_text += f"INTERROGAÇÃO FENOMENOLÓGICA:\n\"{phenom_q}\"\n\n"
-                prompt_text += (
-                    "ETAPA 1: Extraia unidades de sentido (documento, página, citação literal exata, contexto e justificativa).\n"
-                    "REGRAS: NÃO parafrasear a citação; NÃO inventar páginas; NÃO omitir documento.\n"
-                    "ETAPA 2: Transforme cada unidade em unidade de significado.\n"
-                    "ETAPA 3: Agrupe convergências.\n"
-                    "ETAPA 4: Sugira categorias fenomenológicas.\n\n"
-                )
-
-            if includes_thematic(mode):
-                prompt_text += "=== MODO ANÁLISE TEMÁTICA (Braun & Clarke) ===\n"
-                if thematic_q.strip():
-                    prompt_text += f"QUESTÃO ORIENTADORA (OPCIONAL):\n\"{thematic_q}\"\n\n"
-                prompt_text += (
-                    "Execute as fases 2–5:\n"
-                    "FASE 2 (Códigos iniciais): extraia códigos com TRECHO literal, documento, página, nome do código e descrição operacional.\n"
-                    "FASE 3–5 (Temas): agrupe códigos em temas; para cada tema: nome, descrição, lista de IDs de códigos relacionados e interpretação.\n"
-                    "REGRAS: Trechos devem ser literais; não inventar páginas; se página não identificável, use null.\n\n"
-                )
-
-            if includes_systematic(mode):
-                prompt_text += "=== MODO MAPEAMENTO SISTEMÁTICO ===\n"
-                prompt_text += "Responda às perguntas abaixo para CADA documento:\n"
-                prompt_text += f"{sys_q}\n\n"
-                prompt_text += (
-                    "REGRAS: Respostas objetivas (máx. 3 frases). Cite evidência textual literal e página.\n"
-                    "Se página não puder ser identificada com certeza, retorne null.\n\n"
-                )
-
-            contents = gemini_files + [prompt_text]
-
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    system_instruction=(
-                        "Você é um assistente de análise qualitativa de corpus documental.\n"
-                        "Nunca invente conteúdo. Preserve rastreabilidade.\n"
-                        "Se o número da página não puder ser identificado com certeza, use null.\n"
-                        "Respeite o schema JSON estritamente."
-                    ),
-                    response_mime_type="application/json",
-                    response_schema=AnalysisResult,
-                    temperature=0.2,
-                ),
-            )
-
-            st.session_state.result_data = json.loads(response.text)
-            st.session_state.analysis_done = True
-            st.session_state.cross_synthesis_mode_tag = f"{mode}|{len(uploaded_files)}|{total_size}"
-            st.success("Análise concluída com sucesso!")
-
-        except Exception as e:
-            if "exceeds the maximum number of tokens allowed" in str(e):
-                st.error("O corpus excede o limite de tokens. Reduza a quantidade de PDFs.")
+    if run:
+        if needs_phenom and not phenom_q.strip():
+            st.warning("Preencha a Interrogação Fenomenológica.")
+        elif needs_sys and mode != "Temático (Braun & Clarke)" and not sys_q.strip() and "Mapeamento" in mode:
+            st.warning("Preencha as Perguntas para Mapeamento (1 por linha).")
+        else:
+            total_size = sum([f.size for f in uploaded_files]) if uploaded_files else 0
+            if total_size > 15 * 1024 * 1024:
+                st.error(f"Tamanho total {total_size/1024/1024:.2f} MB excede limite seguro de 15 MB.")
             else:
-                st.error(f"Erro durante a análise: {e}")
+                with st.spinner("Analisando o corpus..."):
+                    try:
+                        gemini_files = [
+                            types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf")
+                            for f in uploaded_files
+                        ]
 
-# ============================================================
-# RENDER RESULTADOS
-# ============================================================
-if st.session_state.analysis_done and st.session_state.result_data:
-    result_data = st.session_state.result_data
-    render_mode = st.session_state.last_mode or mode
+                        prompt_text = "Leia todos os PDFs anexados.\n\n"
 
-    phenom_data = (result_data.get("fenomenologico") or {}) if includes_phenom(render_mode) else {}
-    them_data = (result_data.get("tematico") or {}) if includes_thematic(render_mode) else {}
-    sys_data = (result_data.get("sistematico") or {}) if includes_systematic(render_mode) else {}
+                        # Fenomenológico
+                        if needs_phenom:
+                            prompt_text += "=== MODO FENOMENOLÓGICO ===\n"
+                            prompt_text += f"INTERROGAÇÃO:\n\"{phenom_q}\"\n\n"
+                            prompt_text += (
+                                "ETAPA 1: Extraia unidades de sentido (documento, página, citação literal exata, contexto e justificativa).\n"
+                                "ETAPA 2: Transforme cada unidade em unidade de significado.\n"
+                                "ETAPA 3: Agrupe convergências.\n"
+                                "ETAPA 4: Sugira categorias fenomenológicas.\n"
+                                "Regras: NÃO parafrasear a citação, NÃO inventar páginas. Se não souber, página = null.\n\n"
+                            )
 
-    n_us = len((phenom_data or {}).get("unidades_sentido", [])) if includes_phenom(render_mode) else 0
-    n_um = len((phenom_data or {}).get("unidades_significado", [])) if includes_phenom(render_mode) else 0
-    n_cat = len((phenom_data or {}).get("categorias", [])) if includes_phenom(render_mode) else 0
-    n_cod = len((them_data or {}).get("codigos", [])) if includes_thematic(render_mode) else 0
-    n_temas = len((them_data or {}).get("temas", [])) if includes_thematic(render_mode) else 0
+                        # Temático (Braun & Clarke) — implementação mínima: códigos + temas
+                        # Para manter compatibilidade, reaproveitamos estrutura fenomenológica como "unidades_sentido"
+                        # e "categorias" como "temas". (Você pode refinar depois com schema próprio.)
+                        if needs_thematic:
+                            prompt_text += "=== MODO TEMÁTICO (BRAUN & CLARKE) ===\n"
+                            if thematic_q.strip():
+                                prompt_text += f"QUESTÃO ORIENTADORA:\n\"{thematic_q.strip()}\"\n\n"
+                            prompt_text += (
+                                "Produza: (1) uma lista de CÓDIGOS com trechos literais (doc/página) "
+                                "e (2) TEMAS com descrição e lista de códigos associados.\n"
+                                "Se não conseguir página com certeza, use null.\n\n"
+                            )
 
-    st.markdown(
-        """
-<div class="qa-shell" style="padding:18px 22px;">
-  <div class="qa-badge">Resultados prontos — exporte CSV em cada aba</div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
+                        # Mapeamento Sistemático
+                        if "Mapeamento" in mode or mode == "Mapeamento Sistemático" or mode == "Todos (3 modos)":
+                            qs = parse_questions(sys_q)
+                            if qs:
+                                prompt_text += "=== MODO MAPEAMENTO SISTEMÁTICO ===\n"
+                                prompt_text += "Responda às perguntas abaixo PARA CADA documento:\n"
+                                prompt_text += "\n".join(qs) + "\n\n"
+                                prompt_text += "Regras: resposta objetiva + evidência textual literal + página.\n\n"
 
-    tabs = []
-    if includes_phenom(render_mode):
-        tabs.extend([f"☰ Unidades de Sentido ({n_us})", f"📄 Unidades de Significado ({n_um})", f"🏷️ Categorias ({n_cat})"])
-    if includes_thematic(render_mode):
-        tabs.extend([f"🧩 Códigos ({n_cod})", f"🗂️ Temas ({n_temas})"])
-    if includes_systematic(render_mode):
-        tabs.append("🧭 Mapeamento")
+                        contents = gemini_files + [prompt_text]
 
-    st_tabs = st.tabs(tabs)
-    tab_idx = 0
+                        # escolhe schema
+                        schema = AnalysisResult
+                        if mode == "Fenomenológico":
+                            schema = PhenomenologicalResult
+                        elif mode == "Mapeamento Sistemático":
+                            schema = SystematicResult
 
-    # ===================== Fenomenológico =====================
-    if includes_phenom(render_mode):
-        # Unidades de Sentido
-        with st_tabs[tab_idx]:
-            unidades = (phenom_data or {}).get("unidades_sentido", [])
-            if not unidades:
-                st.warning("Nenhuma unidade de sentido foi retornada.")
-            else:
-                df_us = pd.DataFrame(unidades)
-                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("ID/DOC/PÁG • Citação literal • Contexto & Justificativa")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_us.to_csv(index=False).encode("utf-8"),
-                        "unidades_sentido.csv",
-                        "text/csv",
-                        use_container_width=True,
-                    )
+                        response = client.models.generate_content(
+                            model="gemini-2.5-flash",
+                            contents=contents,
+                            config=types.GenerateContentConfig(
+                                system_instruction=(
+                                    "Você é um assistente de análise qualitativa de corpus documental. "
+                                    "Siga o prompt e preencha o JSON de saída. "
+                                    "Nunca invente conteúdo. Se página não for certa, use null."
+                                ),
+                                response_mime_type="application/json",
+                                response_schema=schema,
+                                temperature=0.2,
+                            ),
+                        )
 
-                st.markdown(
-                    """
-                    <div class="scrollbox">
-                      <div class="sticky-header">
-                        <div class="grid-header">
-                          <div class="h">ID / DOC / PÁG</div>
-                          <div class="h">CITAÇÃO LITERAL</div>
-                          <div class="h">CONTEXTO &amp; JUSTIFICATIVA</div>
-                        </div>
-                      </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                        result_data = json.loads(response.text)
+                        st.session_state.analysis_result = result_data
+                        st.session_state.last_mode = mode
+                        st.success("Análise concluída!")
 
-                for _, r in df_us.iterrows():
-                    uid = r.get("id_unidade", "")
-                    doc = r.get("documento", "")
-                    pag = r.get("pagina", None)
-                    pag_txt = f"Pág. {pag}" if (pag is not None and str(pag).strip() != "") else "Pág. null"
-                    cit = r.get("citacao_literal", "")
-                    ctx = (r.get("contexto_resumido", "") or "").strip()
-                    jus = (r.get("justificativa_fenomenologica", "") or "").strip()
+                    except Exception as e:
+                        st.error(f"Erro durante a análise: {e}")
 
-                    cj_html = ""
-                    if ctx:
-                        cj_html += f'<div class="cj-title">CONTEXTO</div><div class="cj-text">{ctx}</div><br/>'
-                    if jus:
-                        cj_html += f'<div class="cj-title">JUSTIFICATIVA</div><div class="cj-text">{jus}</div>'
-                    if not cj_html:
-                        cj_html = '<div class="muted">-</div>'
+    # Render dos resultados (sem reprocessar)
+    result_data = st.session_state.analysis_result
+    if result_data:
+        mode_used = st.session_state.last_mode or mode
 
-                    st.markdown(
-                        f"""
-                        <div class="grid-row">
-                          <div>
-                            <div class="idblock">{uid}</div>
-                            <div class="docblock">{doc}</div>
-                            <div class="pagblock">{pag_txt}</div>
+        # Normaliza
+        phenom_data = result_data if mode_used == "Fenomenológico" else safe_get(result_data, "fenomenologico", None)
+        sys_data = result_data if mode_used == "Mapeamento Sistemático" else safe_get(result_data, "sistematico", None)
+
+        tabs = []
+        if phenom_data:
+            tabs.extend(["Unidades de Sentido", "Unidades de Significado", "Categorias"])
+        if sys_data:
+            tabs.append("Mapeamento")
+
+        if tabs:
+            t = st.tabs(tabs)
+
+            ti = 0
+            # Fenomenológico: cards estilo “mapeamento”
+            if phenom_data:
+                # CSV topo (por aba)
+                with t[ti]:
+                    us = pd.DataFrame(phenom_data.get("unidades_sentido", []))
+                    csv = us.to_csv(index=False).encode("utf-8")
+                    st.download_button("Exportar CSV", csv, "unidades_sentido.csv", "text/csv")
+
+                    for _, row in us.iterrows():
+                        doc = row.get("documento", "-")
+                        pid = row.get("id_unidade", "-")
+                        pag = row.get("pagina", None)
+                        pag_txt = f"Pág. {pag}" if pd.notna(pag) and pag is not None else "Pág. —"
+                        cit = row.get("citacao_literal", "")
+                        ctx = row.get("contexto_resumido", "")
+                        jus = row.get("justificativa_fenomenologica", "")
+
+                        st.markdown(f"""
+                        <div class="qa-card">
+                          <div class="qa-card-head">
+                            <div>
+                              <div class="qa-doc">{doc}</div>
+                              <div class="qa-meta">{pid} • {pag_txt}</div>
+                            </div>
+                            <span class="qa-pill qa-pill-accent">Unidade de Sentido</span>
                           </div>
-                          <div class="quote">"{cit}"</div>
-                          <div>{cj_html}</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
 
-                st.markdown("</div>", unsafe_allow_html=True)
-        tab_idx += 1
+                          <div class="qa-quote">"{cit}"</div>
 
-        # Unidades de Significado
-        with st_tabs[tab_idx]:
-            unidades_sig = (phenom_data or {}).get("unidades_significado", [])
-            if not unidades_sig:
-                st.warning("Nenhuma unidade de significado foi retornada.")
-            else:
-                df_um = pd.DataFrame(unidades_sig)
-                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("ID/Documento • Trecho original • Síntese de significado")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_um.to_csv(index=False).encode("utf-8"),
-                        "unidades_significado.csv",
-                        "text/csv",
-                        use_container_width=True,
-                    )
+                          <div class="qa-block">
+                            <div style="font-weight:800; font-family:'Work Sans'; margin-bottom:6px; color:var(--muted); text-transform:uppercase; font-size:12px;">
+                              Contexto
+                            </div>
+                            <div>{ctx if ctx else "-"}</div>
 
-                st.markdown(
-                    """
-                    <div class="scrollbox">
-                      <div class="sticky-header">
-                        <div class="grid-header">
-                          <div class="h">ID / DOCUMENTO</div>
-                          <div class="h">TRECHO ORIGINAL</div>
-                          <div class="h">SÍNTESE</div>
-                        </div>
-                      </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                            <div style="height:10px"></div>
 
-                for _, r in df_um.iterrows():
-                    uid = r.get("id_unidade", "")
-                    doc = r.get("documento", "")
-                    tre = r.get("trecho_original", "")
-                    syn = r.get("sintese", "")
-                    st.markdown(
-                        f"""
-                        <div class="grid-row">
-                          <div>
-                            <div class="idblock">{uid}</div>
-                            <div class="docblock">{doc}</div>
+                            <div style="font-weight:800; font-family:'Work Sans'; margin-bottom:6px; color:var(--muted); text-transform:uppercase; font-size:12px;">
+                              Justificativa
+                            </div>
+                            <div>{jus if jus else "-"}</div>
                           </div>
-                          <div class="quote">"{tre}"</div>
-                          <div class="synth-card">{syn}</div>
                         </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                        """, unsafe_allow_html=True)
+                ti += 1
 
-                st.markdown("</div>", unsafe_allow_html=True)
-        tab_idx += 1
+                with t[ti]:
+                    um = pd.DataFrame(phenom_data.get("unidades_significado", []))
+                    csv = um.to_csv(index=False).encode("utf-8")
+                    st.download_button("Exportar CSV", csv, "unidades_significado.csv", "text/csv")
 
-        # Categorias
-        with st_tabs[tab_idx]:
-            categorias = (phenom_data or {}).get("categorias", [])
-            if not categorias:
-                st.warning("Nenhuma categoria foi retornada.")
-            else:
-                df_cat = pd.DataFrame(
-                    [
-                        {
+                    for _, row in um.iterrows():
+                        doc = row.get("documento", "-")
+                        pid = row.get("id_unidade", "-")
+                        trecho = row.get("trecho_original", "")
+                        sintese = row.get("sintese", "")
+
+                        st.markdown(f"""
+                        <div class="qa-card">
+                          <div class="qa-card-head">
+                            <div>
+                              <div class="qa-doc">{doc}</div>
+                              <div class="qa-meta">{pid}</div>
+                            </div>
+                            <span class="qa-pill">Unidade de Significado</span>
+                          </div>
+
+                          <div class="qa-quote">"{trecho}"</div>
+
+                          <div class="qa-block">
+                            <div style="font-weight:800; font-family:'Work Sans'; margin-bottom:6px; color:var(--muted); text-transform:uppercase; font-size:12px;">
+                              Síntese de significado
+                            </div>
+                            <div style="font-weight:700;">{sintese if sintese else "-"}</div>
+                          </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                ti += 1
+
+                with t[ti]:
+                    cats = phenom_data.get("categorias", [])
+                    # CSV
+                    cats_rows = []
+                    for c in cats:
+                        cats_rows.append({
                             "nome": c.get("nome"),
                             "descricao": c.get("descricao"),
-                            "unidades_relacionadas": ", ".join(c.get("unidades_relacionadas", [])),
-                        }
-                        for c in categorias
-                    ]
-                )
+                            "unidades_relacionadas": ", ".join(c.get("unidades_relacionadas", []))
+                        })
+                    df_cats = pd.DataFrame(cats_rows)
+                    csv = df_cats.to_csv(index=False).encode("utf-8")
+                    st.download_button("Exportar CSV", csv, "categorias.csv", "text/csv")
 
-                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("Categorias fenomenológicas (cards)")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_cat.to_csv(index=False).encode("utf-8"),
-                        "categorias.csv",
-                        "text/csv",
-                        use_container_width=True,
-                    )
+                    # cards de categorias
+                    for c in cats:
+                        nome = c.get("nome", "Categoria")
+                        desc = c.get("descricao", "")
+                        units = c.get("unidades_relacionadas", [])
+                        chips = " ".join([f'<span class="qa-pill">{u}</span>' for u in units]) if units else "<span class='qa-pill'>—</span>"
 
-                st.markdown('<div class="cat-grid">', unsafe_allow_html=True)
-                for c in categorias:
-                    nome = c.get("nome", "(sem nome)")
-                    desc = c.get("descricao", "")
-                    rel = c.get("unidades_relacionadas", [])
-                    chips_html = (
-                        '<div class="chips">' + "".join([f'<span class="chip">{u}</span>' for u in rel]) + "</div>"
-                        if rel
-                        else '<div class="muted">-</div>'
-                    )
-                    st.markdown(
-                        f"""
-                        <div class="cat-card">
-                          <div class="cat-title">{nome}</div>
-                          <div class="cat-desc">{desc}</div>
-                          <div class="cat-sub">UNIDADES RELACIONADAS</div>
-                          {chips_html}
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                st.markdown("</div>", unsafe_allow_html=True)
-        tab_idx += 1
-
-    # ===================== Temática (Braun & Clarke) =====================
-    if includes_thematic(render_mode):
-        # Códigos
-        with st_tabs[tab_idx]:
-            codigos = (them_data or {}).get("codigos", [])
-            if not codigos:
-                st.warning("Nenhum código foi retornado.")
-            else:
-                df_cod = pd.DataFrame(codigos)
-                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("ID/DOC/PÁG • Trecho literal • Código & definição")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_cod.to_csv(index=False).encode("utf-8"),
-                        "codigos_tematicos.csv",
-                        "text/csv",
-                        use_container_width=True,
-                    )
-
-                st.markdown(
-                    """
-                    <div class="scrollbox">
-                      <div class="sticky-header">
-                        <div class="grid-header">
-                          <div class="h">ID / DOC / PÁG</div>
-                          <div class="h">TRECHO LITERAL</div>
-                          <div class="h">CÓDIGO &amp; DEFINIÇÃO</div>
-                        </div>
-                      </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-                for _, r in df_cod.iterrows():
-                    cid = r.get("id_codigo", "")
-                    doc = r.get("documento", "")
-                    pag = r.get("pagina", None)
-                    pag_txt = f"Pág. {pag}" if (pag is not None and str(pag).strip() != "") else "Pág. null"
-                    trecho = r.get("trecho", "")
-                    codigo = r.get("codigo", "")
-                    desc = r.get("descricao_codigo", "")
-
-                    cj_html = (
-                        f'<div class="cj-title">CÓDIGO</div><div class="cj-text">{codigo}</div><br/>'
-                        f'<div class="cj-title">DEFINIÇÃO</div><div class="cj-text">{desc}</div>'
-                        if (codigo or desc)
-                        else '<div class="muted">-</div>'
-                    )
-
-                    st.markdown(
-                        f"""
-                        <div class="grid-row">
-                          <div>
-                            <div class="idblock">{cid}</div>
-                            <div class="docblock">{doc}</div>
-                            <div class="pagblock">{pag_txt}</div>
+                        st.markdown(f"""
+                        <div class="qa-card">
+                          <div class="qa-card-head">
+                            <div class="qa-doc">{nome}</div>
+                            <span class="qa-pill qa-pill-accent">Categoria</span>
                           </div>
-                          <div class="quote">"{trecho}"</div>
-                          <div>{cj_html}</div>
+
+                          <div class="qa-block">{desc if desc else "-"}</div>
+
+                          <div style="margin-top:10px; font-weight:800; font-family:'Work Sans'; color:var(--muted); text-transform:uppercase; font-size:12px;">
+                            Unidades relacionadas
+                          </div>
+                          <div style="margin-top:8px;">{chips}</div>
                         </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                        """, unsafe_allow_html=True)
+                ti += 1
 
-                st.markdown("</div>", unsafe_allow_html=True)
-        tab_idx += 1
+            # Mapeamento: grid estilo print
+            if sys_data:
+                with t[ti]:
+                    docs = sys_data.get("documentos", [])
 
-        # Temas
-        with st_tabs[tab_idx]:
-            temas = (them_data or {}).get("temas", [])
-            if not temas:
-                st.warning("Nenhum tema foi retornado.")
-            else:
-                df_temas = pd.DataFrame(
-                    [
-                        {
-                            "nome": t.get("nome"),
-                            "descricao": t.get("descricao"),
-                            "interpretacao": t.get("interpretacao"),
-                            "codigos_relacionados": ", ".join(t.get("codigos_relacionados", [])),
-                        }
-                        for t in temas
-                    ]
-                )
+                    # extrair perguntas únicas
+                    unique_qs = []
+                    for d in docs:
+                        for a in d.get("respostas", []):
+                            q = a.get("pergunta")
+                            if q and q not in unique_qs:
+                                unique_qs.append(q)
 
-                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("Temas (cards) • descrição • interpretação • códigos relacionados")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_temas.to_csv(index=False).encode("utf-8"),
-                        "temas_tematicos.csv",
-                        "text/csv",
-                        use_container_width=True,
-                    )
+                    # CSV topo
+                    rows = []
+                    for d in docs:
+                        row = {"Documento": d.get("documento", "-")}
+                        for q in unique_qs:
+                            ans = next((x for x in d.get("respostas", []) if x.get("pergunta") == q), None)
+                            if ans:
+                                p = ans.get("pagina")
+                                ptxt = f" (Pág. {p})" if p is not None else ""
+                                row[q] = f"{ans.get('resposta','')}\n\nEvidência: \"{ans.get('evidencia_textual','')}\"{ptxt}"
+                            else:
+                                row[q] = "-"
+                        rows.append(row)
 
-                st.markdown('<div class="cat-grid">', unsafe_allow_html=True)
-                for t in temas:
-                    nome = t.get("nome", "(sem nome)")
-                    desc = t.get("descricao", "")
-                    interp = t.get("interpretacao", "")
-                    rel = t.get("codigos_relacionados", [])
+                    df_sys = pd.DataFrame(rows)
+                    csv = df_sys.to_csv(index=False).encode("utf-8")
+                    st.download_button("Exportar CSV", csv, "mapeamento_sistematico.csv", "text/csv")
 
-                    chips_html = (
-                        '<div class="chips">' + "".join([f'<span class="chip">{u}</span>' for u in rel]) + "</div>"
-                        if rel
-                        else '<div class="muted">-</div>'
-                    )
+                    # grid (até 3 perguntas por linha no layout mostrado)
+                    show_qs = unique_qs[:3] if len(unique_qs) >= 3 else unique_qs
+                    while len(show_qs) < 3:
+                        show_qs.append("—")
 
-                    st.markdown(
-                        f"""
-                        <div class="cat-card">
-                          <div class="cat-title">{nome}</div>
-                          <div class="cat-desc">{desc}</div>
-                          <div class="cat-sub">INTERPRETAÇÃO</div>
-                          <div class="cat-desc">{interp}</div>
-                          <div class="cat-sub">CÓDIGOS RELACIONADOS</div>
-                          {chips_html}
+                    st.markdown(f"""
+                    <div class="qa-grid-header">
+                      <div>Documento</div>
+                      <div>{show_qs[0]}</div>
+                      <div>{show_qs[1]}</div>
+                      <div>{show_qs[2]}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    for d in docs:
+                        docname = d.get("documento", "-")
+                        answers = d.get("respostas", [])
+
+                        def cell_for(q):
+                            if q == "—":
+                                return "<div class='qa-cell'>—</div>"
+                            ans = next((x for x in answers if x.get("pergunta") == q), None)
+                            if not ans:
+                                return "<div class='qa-cell'>—</div>"
+                            resp = ans.get("resposta", "-")
+                            ev = ans.get("evidencia_textual", "")
+                            pg = ans.get("pagina", None)
+                            pg_html = f"<div class='qa-page'>PÁG. {pg}</div>" if pg is not None else "<div class='qa-page'>PÁG. —</div>"
+                            ev_html = f"<div class='qa-ev'>\"{ev}\"</div>" if ev else ""
+                            return f"<div class='qa-cell'><div>{resp}</div>{ev_html}{pg_html}</div>"
+
+                        st.markdown(f"""
+                        <div class="qa-grid-row">
+                          <div class="qa-doccell">
+                            <div class="qa-doctitle">{docname}</div>
+                          </div>
+                          {cell_for(show_qs[0])}
+                          {cell_for(show_qs[1])}
+                          {cell_for(show_qs[2])}
                         </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                st.markdown("</div>", unsafe_allow_html=True)
-        tab_idx += 1
+                        """, unsafe_allow_html=True)
 
-    # ===================== Mapeamento Sistemático =====================
-    if includes_systematic(render_mode):
-        with st_tabs[tab_idx]:
-            docs = (sys_data or {}).get("documentos", [])
-            if not docs:
-                st.warning("O mapeamento sistemático não foi retornado.")
-            else:
-                rows_long = []
-                for doc in docs:
-                    for ans in doc.get("respostas", []):
-                        rows_long.append(
-                            {
-                                "Documento": doc.get("documento"),
-                                "Pergunta": ans.get("pergunta"),
-                                "Resposta": ans.get("resposta"),
-                                "Evidência": ans.get("evidencia_textual"),
-                                "Página": ans.get("pagina"),
-                            }
-                        )
-                df_long = pd.DataFrame(rows_long)
-                st.session_state.df_sys_long = df_long
+    else:
+        st.info("Envie PDFs e rode a análise. Os resultados aparecerão aqui (não reinicia ao exportar CSV).")
 
-                st.download_button(
-                    "Exportar CSV",
-                    df_long.to_csv(index=False).encode("utf-8"),
-                    "mapeamento_sistematico.csv",
-                    "text/csv",
-                )
-                st.caption("Comparação por pergunta + síntese transversal (usa apenas respostas já extraídas).")
-
-                perguntas = df_long["Pergunta"].dropna().unique().tolist()
-                st.subheader("Comparação transversal (por pergunta)")
-
-                for pergunta in perguntas:
-                    sub = df_long[df_long["Pergunta"] == pergunta].copy()
-
-                    with st.expander(f"🔎 {pergunta}", expanded=False):
-                        st.dataframe(
-                            sub[["Documento", "Resposta", "Página", "Evidência"]],
-                            use_container_width=True,
-                            height=260,
-                            column_config={
-                                "Documento": st.column_config.TextColumn("Documento", width="medium"),
-                                "Resposta": st.column_config.TextColumn("Resposta", width="large"),
-                                "Página": st.column_config.TextColumn("Página", width="small"),
-                                "Evidência": st.column_config.TextColumn("Evidência", width="large"),
-                            },
-                        )
-
-                        colA, _ = st.columns([1.4, 3.6])
-                        with colA:
-                            if st.button("Gerar síntese transversal", key=f"sintese_{hash(pergunta)}"):
-                                with st.spinner("Gerando síntese (sem reprocessar PDFs)..."):
-                                    texto = gerar_sintese_transversal(pergunta, sub)
-                                    st.session_state.cross_synthesis[pergunta] = texto
-
-                        if pergunta in st.session_state.cross_synthesis:
-                            st.markdown("### Síntese transversal")
-                            st.write(st.session_state.cross_synthesis[pergunta])
-
-                        st.markdown("### Evidências por documento")
-                        for _, r in sub.iterrows():
-                            doc = str(r.get("Documento", "(sem doc)"))
-                            resp = str(r.get("Resposta", "")).strip()
-                            evid = str(r.get("Evidência", "")).strip()
-                            pag = r.get("Página", None)
-                            pag_txt = f"PÁG. {pag}" if (pag is not None and str(pag).strip() != "") else "PÁG. null"
-
-                            st.markdown(
-                                f"""
-                                <div class="grid-row" style="grid-template-columns: 220px 1.25fr 1.1fr;">
-                                  <div>
-                                    <div class="docblock">{doc}</div>
-                                    <div class="pagblock">{pag_txt}</div>
-                                  </div>
-                                  <div class="synth-card">{resp}</div>
-                                  <div class="quote">"{evid}"</div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
+    st.markdown("</div>", unsafe_allow_html=True)
