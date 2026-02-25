@@ -16,7 +16,7 @@ st.markdown("""
 
 :root{
 
---bg:#1abc9c;
+--bg:#f1c40f;
 
 --card:#FFFFFF;
 
