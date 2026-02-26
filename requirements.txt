@@ -3,3 +3,4 @@ pandas
 google-genai
 pydantic
 requests
+google-generativeai
