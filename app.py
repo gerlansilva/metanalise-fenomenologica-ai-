@@ -4,6 +4,7 @@ import json
 import os
 import time
 import threading
+import requests
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 from google import genai
 from google.genai import types
@@ -16,7 +17,7 @@ st.set_page_config(
     page_title="Análise Qualitativa AI",
     page_icon="📖",
     layout="wide",
-    initial_sidebar_state="expanded", # Sidebar começa aberta, mas pode ser recolhida
+    initial_sidebar_state="expanded",
 )
 
 # ============================================================
@@ -171,16 +172,13 @@ div[data-baseweb="tab-highlight"]{
 # ============================================================
 # SESSION STATE
 # ============================================================
-if "analysis_done" not in st.session_state:
-    st.session_state.analysis_done = False
-if "result_data" not in st.session_state:
-    st.session_state.result_data = None
-if "df_sys_long" not in st.session_state:
-    st.session_state.df_sys_long = None
-if "last_mode" not in st.session_state:
-    st.session_state.last_mode = None
-if "cross_synthesis" not in st.session_state:
-    st.session_state.cross_synthesis = {}
+if "analysis_done" not in st.session_state: st.session_state.analysis_done = False
+if "result_data" not in st.session_state: st.session_state.result_data = None
+if "df_sys_long" not in st.session_state: st.session_state.df_sys_long = None
+if "last_mode" not in st.session_state: st.session_state.last_mode = None
+if "cross_synthesis" not in st.session_state: st.session_state.cross_synthesis = {}
+if "ris_pdfs" not in st.session_state: st.session_state.ris_pdfs = []
+if "ris_texts" not in st.session_state: st.session_state.ris_texts = []
 
 # ============================================================
 # GEMINI CLIENT
@@ -255,7 +253,7 @@ class AnalysisResult(BaseModel):
     sistematico: SystematicResult | None = None
 
 # ============================================================
-# FUNÇÃO: SÍNTESE TRANSVERSAL
+# FUNÇÕES AUXILIARES
 # ============================================================
 def gerar_sintese_transversal(pergunta: str, df_sub: pd.DataFrame) -> str:
     linhas = []
@@ -289,18 +287,48 @@ TAREFAS (nesta ordem):
     )
     return resp.text
 
-def includes_phenom(m: str) -> bool:
-    return m in ["Fenomenológico", "Fenomenológico + Mapeamento", "Todos (3 modos)"]
-def includes_thematic(m: str) -> bool:
-    return m in ["Temático (Braun & Clarke)", "Temático + Mapeamento", "Todos (3 modos)"]
-def includes_systematic(m: str) -> bool:
-    return m in ["Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"]
+def parse_ris(ris_text):
+    entries = []
+    current = {}
+    for line in ris_text.splitlines():
+        line = line.strip()
+        if not line: continue
+        if line.startswith('ER  -'):
+            if current: entries.append(current)
+            current = {}
+        elif len(line) >= 6 and line[4:6] == '- ':
+            key = line[:2]
+            val = line[6:].strip()
+            if key in current: current[key] = current[key] + " ; " + val
+            else: current[key] = val
+    return entries
+
+def fetch_oa_pdf(doi):
+    try:
+        url = f"https://api.unpaywall.org/v2/{doi}?email=dobbylivreagora@gmail.com"
+        res = requests.get(url, timeout=10)
+        if res.status_code == 200:
+            data = res.json()
+            if data.get('is_oa') and data.get('best_oa_location'):
+                pdf_url = data['best_oa_location'].get('url_for_pdf')
+                if pdf_url:
+                    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+                    pdf_res = requests.get(pdf_url, headers=headers, timeout=15)
+                    if pdf_res.status_code == 200 and pdf_res.content.startswith(b'%PDF'):
+                        return pdf_res.content
+    except Exception:
+        pass
+    return None
+
+def includes_phenom(m: str) -> bool: return m in ["Fenomenológico", "Fenomenológico + Mapeamento", "Todos (3 modos)"]
+def includes_thematic(m: str) -> bool: return m in ["Temático (Braun & Clarke)", "Temático + Mapeamento", "Todos (3 modos)"]
+def includes_systematic(m: str) -> bool: return m in ["Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"]
 
 # ============================================================
 # TÍTULO CENTRALIZADO
 # ============================================================
 st.markdown('<div class="qa-title-center">Análise Qualitativa AI</div>', unsafe_allow_html=True)
-st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática (Braun & Clarke) • Mapeamento • Rastreamento por documento/página</div>', unsafe_allow_html=True)
+st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática (Braun & Clarke) • Mapeamento • Integração RIS (Scopus/OpenAlex)</div>', unsafe_allow_html=True)
 
 # ============================================================
 # BARRA LATERAL (SIDEBAR)
@@ -309,14 +337,7 @@ with st.sidebar:
     st.header("Configurações")
     mode = st.radio(
         "Modo de Análise",
-        [
-            "Fenomenológico",
-            "Temático (Braun & Clarke)",
-            "Mapeamento Sistemático",
-            "Fenomenológico + Mapeamento",
-            "Temático + Mapeamento",
-            "Todos (3 modos)",
-        ],
+        ["Fenomenológico", "Temático (Braun & Clarke)", "Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"],
         horizontal=False,
     )
 
@@ -333,10 +354,63 @@ with st.sidebar:
     if includes_systematic(mode):
         sys_q = st.text_area("Perguntas para Mapeamento Sistemático (1 por linha)", placeholder="1. Qual é o objetivo do estudo?\n2. Qual metodologia é utilizada?", height=150)
 
-    uploaded_files = st.file_uploader("Corpus Documental (PDFs)", type="pdf", accept_multiple_files=True)
+    st.markdown("---")
+    st.subheader("📚 Corpus Documental")
+
+    # 1. RIS UPLOADER (SCOPUS / WEB OF SCIENCE / OPENALEX)
+    with st.expander("📥 Importar arquivo .RIS (Scopus/OpenAlex)", expanded=False):
+        st.markdown("<p style='font-size:13px; color:var(--muted);'>Faz o download automático de PDFs Open Access a partir do DOI. Artigos fechados terão o resumo extraído.</p>", unsafe_allow_html=True)
+        ris_file = st.file_uploader("Arquivo .ris", type=["ris", "txt"])
+        
+        if ris_file and st.button("Processar e Baixar PDFs"):
+            with st.spinner("Lendo arquivo RIS..."):
+                ris_text = ris_file.getvalue().decode("utf-8", errors="ignore")
+                entries = parse_ris(ris_text)
+                
+                st.session_state.ris_pdfs = []
+                st.session_state.ris_texts = []
+                
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                for i, entry in enumerate(entries):
+                    title = entry.get('TI', 'Sem título')
+                    doi = entry.get('DO', '').replace('https://doi.org/', '').strip()
+                    abstract = entry.get('AB', '')
+                    
+                    status_text.text(f"Buscando ({i+1}/{len(entries)}): {title[:30]}...")
+                    
+                    pdf_bytes = None
+                    if doi:
+                        pdf_bytes = fetch_oa_pdf(doi)
+                    
+                    if pdf_bytes:
+                        st.session_state.ris_pdfs.append({"name": f"RIS: {title[:30]}.pdf", "bytes": pdf_bytes})
+                    elif abstract:
+                        content = f"Título: {title}\nDOI: {doi}\n\nResumo:\n{abstract}"
+                        st.session_state.ris_texts.append({"name": f"RIS (Resumo): {title[:30]}", "text": content})
+                        
+                    progress_bar.progress((i + 1) / len(entries))
+                    
+                status_text.success(f"Concluído! {len(st.session_state.ris_pdfs)} PDFs baixados, {len(st.session_state.ris_texts)} resumos extraídos.")
+
+    # 2. FILE UPLOADER MANUAL
+    uploaded_files = st.file_uploader("Ou envie seus PDFs manualmente", type="pdf", accept_multiple_files=True)
+    
+    # Mostrar corpus atual
+    total_docs = len(uploaded_files or []) + len(st.session_state.ris_pdfs) + len(st.session_state.ris_texts)
+    if total_docs > 0:
+        st.markdown(f"**Documentos prontos para análise ({total_docs}):**")
+        for f in (uploaded_files or []): st.markdown(f"- 📄 {f.name}")
+        for d in st.session_state.ris_pdfs: st.markdown(f"- 📥 {d['name']}")
+        for d in st.session_state.ris_texts: st.markdown(f"- 📝 {d['name']}")
+        if st.button("Limpar Corpus Importado"): 
+            st.session_state.ris_pdfs = []
+            st.session_state.ris_texts = []
+            st.rerun()
     
     st.markdown("<br>", unsafe_allow_html=True)
-    run = st.button("▶ Iniciar Análise do Corpus", type="primary", disabled=not uploaded_files)
+    run = st.button("▶ Iniciar Análise do Corpus", type="primary", disabled=(total_docs == 0))
 
 # ============================================================
 # EXECUTAR ANÁLISE COM CRONÔMETRO
@@ -353,12 +427,11 @@ if run:
         st.error("Por favor, preencha as Perguntas para Mapeamento Sistemático.")
         st.stop()
 
-    total_size = sum([f.size for f in uploaded_files])
+    total_size = sum([f.size for f in (uploaded_files or [])]) + sum([len(p['bytes']) for p in st.session_state.ris_pdfs])
     if total_size > 15 * 1024 * 1024:
-        st.error(f"O tamanho total ({total_size / 1024 / 1024:.2f} MB) excede 15 MB. Reduza a quantidade de PDFs.")
+        st.error(f"O tamanho total excede 15 MB. Reduza a quantidade de PDFs.")
         st.stop()
 
-    # Lógica do Cronômetro
     timer_placeholder = st.empty()
     stop_timer = False
     start_time = time.time()
@@ -367,18 +440,26 @@ if run:
         while not stop_timer:
             elapsed = int(time.time() - start_time)
             mins, secs = divmod(elapsed, 60)
-            # Atualiza o placeholder com o tempo
             timer_placeholder.info(f"⏳ **Analisando documentos... Tempo decorrido: {mins:02d}:{secs:02d}**")
             time.sleep(1)
 
-    # Inicia a thread do cronômetro
     t = threading.Thread(target=update_timer)
     add_script_run_ctx(t)
     t.start()
 
     try:
-        gemini_files = [types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf") for f in uploaded_files]
-        prompt_text = "Leia todos os PDFs anexados como um corpus único.\n\n"
+        # Prepara PDFs manuais
+        gemini_files = [types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf") for f in (uploaded_files or [])]
+        
+        # Prepara PDFs baixados do RIS
+        for pdf_doc in st.session_state.ris_pdfs:
+            gemini_files.append(types.Part.from_bytes(data=pdf_doc['bytes'], mime_type="application/pdf"))
+
+        # Prepara Resumos do RIS
+        for doc in st.session_state.ris_texts:
+            gemini_files.append(types.Part.from_text(text=f"DOCUMENTO: {doc['name']}\n\n{doc['text']}"))
+
+        prompt_text = "Leia todos os documentos anexados como um corpus único.\n\n"
 
         if includes_phenom(mode):
             prompt_text += f"=== MODO FENOMENOLÓGICO ===\nINTERROGAÇÃO FENOMENOLÓGICA:\n\"{phenom_q}\"\n\nETAPA 1: Extraia unidades de sentido (documento, página, citação literal exata, contexto e justificativa).\nREGRAS: NÃO parafrasear a citação; NÃO inventar páginas; NÃO omitir documento.\nETAPA 2: Transforme cada unidade em unidade de significado.\nETAPA 3: Agrupe convergências.\nETAPA 4: Sugira categorias fenomenológicas.\n\n"
@@ -411,7 +492,6 @@ if run:
     except Exception as e:
         st.error(f"Erro durante a análise: {e}")
     finally:
-        # Para o cronômetro
         stop_timer = True
         t.join()
         timer_placeholder.empty()
