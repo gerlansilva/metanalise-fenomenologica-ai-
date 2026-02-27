@@ -30,29 +30,26 @@ st.markdown("""
 
 <style>
 :root{
-  --bg:#E7DFC9;          /* pergaminho médio */
-  --panel:#F1E9D8;       /* creme médio */
-  --panel2:#EDE4D1;      /* creme mais fechado */
-  --line:#C9BFA6;        /* bordas */
-  --text:#2F241C;        /* texto */
-  --muted:#6E6A5E;       /* texto secundário */
-  --accent:#C26A2E;      /* terracota */
-  --accent2:#A35422;     /* terracota escuro */
-  --moss:#6F8A73;        /* musgo */
+  --bg:#E7DFC9;
+  --panel:#F1E9D8;
+  --panel2:#EDE4D1;
+  --line:#C9BFA6;
+  --text:#2F241C;
+  --muted:#6E6A5E;
+  --accent:#C26A2E;
+  --accent2:#A35422;
+  --moss:#6F8A73;
   --shadow: 0 10px 26px rgba(47,36,28,0.10);
   --shadow2: 0 2px 10px rgba(47,36,28,0.08);
   --radius: 20px;
 }
 
-/* FUNDO */
 html, body { background: var(--bg) !important; }
 .stApp { background: var(--bg) !important; color: var(--text) !important; }
 * { font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
 
-/* CONTAINER PRINCIPAL */
 .block-container { max-width: 1320px; padding-top: 36px; padding-bottom: 36px; }
 
-/* TÍTULO CENTRALIZADO */
 .qa-title-center{
   font-family: "Josefin Sans", sans-serif;
   font-weight: 800;
@@ -72,7 +69,6 @@ html, body { background: var(--bg) !important; }
   margin-bottom: 40px;
 }
 
-/* CARD/PAINÉIS */
 .qa-shell{
   background: var(--panel);
   border: 1px solid rgba(47,36,28,0.12);
@@ -81,7 +77,6 @@ html, body { background: var(--bg) !important; }
   padding: 18px 20px;
 }
 
-/* INPUTS */
 textarea, input, .stTextInput > div > div > input {
   background: var(--panel2) !important;
   color: var(--text) !important;
@@ -94,18 +89,15 @@ textarea:focus, input:focus {
   box-shadow: 0 0 0 4px rgba(194,106,46,0.18) !important;
 }
 
-/* RADIO / LABELS */
 .stRadio label, .stMarkdown, label, p, span, div { color: var(--text); }
 .stRadio [data-testid="stMarkdownContainer"] p { color: var(--text) !important; }
 
-/* FILE UPLOADER */
 [data-testid="stFileUploader"]{
   border-radius: var(--radius) !important;
   border: 1px dashed rgba(47,36,28,0.25) !important;
   background: rgba(241,233,216,0.55) !important;
 }
 
-/* BOTÃO PRINCIPAL */
 .stButton > button {
   background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
   color: #fff !important;
@@ -119,7 +111,6 @@ textarea:focus, input:focus {
 }
 .stButton > button:hover { filter: saturate(1.05); transform: translateY(-1px); }
 
-/* DOWNLOAD BUTTON */
 div[data-testid="stDownloadButton"] > button {
   border: 1px solid rgba(47,36,28,0.16) !important;
   background: var(--panel2) !important;
@@ -129,7 +120,6 @@ div[data-testid="stDownloadButton"] > button {
   box-shadow: var(--shadow2) !important;
 }
 
-/* TABS */
 button[data-baseweb="tab"]{
   font-family: "Work Sans", sans-serif !important;
   font-weight: 800 !important;
@@ -142,7 +132,6 @@ div[data-baseweb="tab-highlight"]{
   border-radius: 999px !important;
 }
 
-/* QUOTE */
 .quote{
   font-style: italic;
   line-height: 1.62;
@@ -152,7 +141,6 @@ div[data-baseweb="tab-highlight"]{
   color: var(--text);
 }
 
-/* CHIPS */
 .chip{
   border: 1px solid rgba(47,36,28,0.14);
   border-radius: 12px;
@@ -162,7 +150,6 @@ div[data-baseweb="tab-highlight"]{
   background: rgba(111,138,115,0.22);
 }
 
-/* SCROLLBAR */
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(111,138,115,0.75); border-radius: 999px; }
 ::-webkit-scrollbar-track { background: rgba(47,36,28,0.06); }
@@ -256,22 +243,22 @@ class AnalysisResult(BaseModel):
 # FUNÇÕES AUXILIARES
 # ============================================================
 def gerar_sintese_transversal(pergunta: str, df_sub: pd.DataFrame) -> str:
+    # Mantém como estava (síntese em PT) — opcional no quadro.
     linhas = []
     for _, r in df_sub.iterrows():
         doc = str(r.get("Documento", "")).strip()
-        resp = str(r.get("Resposta", "")).strip()
         evid = str(r.get("Evidência", "")).strip()
         pag = r.get("Página", None)
         pag_str = f"{pag}" if (pag is not None and str(pag).strip() != "") else "null"
-        linhas.append(f"- DOCUMENTO: {doc}\n  RESPOSTA: {resp}\n  EVIDÊNCIA: \"{evid}\"\n  PÁGINA: {pag_str}\n")
+        linhas.append(f"- DOCUMENTO: {doc}\n  EVIDÊNCIA: \"{evid}\"\n  PÁGINA: {pag_str}\n")
 
     prompt = f"""
-Você está comparando resultados entre documentos para a MESMA pergunta, com base apenas nas respostas e evidências abaixo.
+Você está comparando resultados entre documentos para a MESMA pergunta, com base apenas nas evidências abaixo.
 
 PERGUNTA:
 {pergunta}
 
-RESPOSTAS POR DOCUMENTO:
+EVIDÊNCIAS POR DOCUMENTO:
 {chr(10).join(linhas)}
 
 TAREFAS (nesta ordem):
@@ -379,7 +366,6 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("📚 Corpus Documental")
 
-    # 1. RIS UPLOADER (SCOPUS / WEB OF SCIENCE / OPENALEX)
     with st.expander("📥 Importar arquivo .RIS (Scopus/OpenAlex)", expanded=False):
         st.markdown(
             "<p style='font-size:13px; color:var(--muted);'>Faz o download automático de PDFs Open Access a partir do DOI. Artigos fechados terão o resumo extraído.</p>",
@@ -421,10 +407,8 @@ with st.sidebar:
                     f"Concluído! {len(st.session_state.ris_pdfs)} PDFs baixados, {len(st.session_state.ris_texts)} resumos extraídos."
                 )
 
-    # 2. FILE UPLOADER MANUAL
     uploaded_files = st.file_uploader("Ou envie seus PDFs manualmente", type="pdf", accept_multiple_files=True)
 
-    # Mostrar corpus atual
     total_docs = len(uploaded_files or []) + len(st.session_state.ris_pdfs) + len(st.session_state.ris_texts)
     if total_docs > 0:
         st.markdown(f"**Documentos prontos para análise ({total_docs}):**")
@@ -443,7 +427,7 @@ with st.sidebar:
     run = st.button("▶ Iniciar Análise do Corpus", type="primary", disabled=(total_docs == 0))
 
 # ============================================================
-# EXECUTAR ANÁLISE COM CRONÔMETRO
+# EXECUTAR ANÁLISE
 # ============================================================
 if run:
     st.session_state.analysis_done = False
@@ -478,14 +462,11 @@ if run:
     t.start()
 
     try:
-        # Prepara PDFs manuais
         gemini_files = [types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf") for f in (uploaded_files or [])]
 
-        # Prepara PDFs baixados do RIS
         for pdf_doc in st.session_state.ris_pdfs:
             gemini_files.append(types.Part.from_bytes(data=pdf_doc['bytes'], mime_type="application/pdf"))
 
-        # Prepara Resumos do RIS
         for doc in st.session_state.ris_texts:
             gemini_files.append(types.Part.from_text(text=f"DOCUMENTO: {doc['name']}\n\n{doc['text']}"))
 
@@ -513,12 +494,19 @@ if run:
             )
 
         if includes_systematic(mode):
+            # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+            # IMPORTANTE: aqui reforçamos que a "evidência_textual" deve ser CITAÇÃO LITERAL
+            # (não paráfrase) e deve vir COM PÁGINA.
+            # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             prompt_text += (
                 "=== MODO MAPEAMENTO SISTEMÁTICO ===\n"
                 "Responda às perguntas abaixo para CADA documento:\n"
                 f"{sys_q}\n\n"
-                "REGRAS: Respostas objetivas (máx. 3 frases). Cite evidência textual literal e página.\n"
-                "Se página não puder ser identificada com certeza, retorne null.\n\n"
+                "REGRAS OBRIGATÓRIAS:\n"
+                "1) 'resposta' deve ser curta (máx. 2–3 frases).\n"
+                "2) 'evidencia_textual' deve ser uma CITAÇÃO LITERAL do artigo (copiada exatamente do texto, sem traduzir/parafrasear).\n"
+                "3) A evidência deve ser suficiente para justificar a resposta.\n"
+                "4) 'pagina' deve ser o número da página onde a citação aparece. Se não tiver certeza, use null.\n\n"
             )
 
         contents = gemini_files + [prompt_text]
@@ -529,7 +517,8 @@ if run:
             config=types.GenerateContentConfig(
                 system_instruction=(
                     "Você é um assistente de análise qualitativa de corpus documental. Nunca invente conteúdo. "
-                    "Preserve rastreabilidade. Se o número da página não puder ser identificado com certeza, use null. "
+                    "Preserve rastreabilidade. Para o mapeamento sistemático: 'evidencia_textual' deve ser citação literal do documento. "
+                    "Se o número da página não puder ser identificado com certeza, use null. "
                     "Respeite o schema JSON estritamente."
                 ),
                 response_mime_type="application/json",
@@ -754,7 +743,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                             """, unsafe_allow_html=True)
         tab_idx += 1
 
-    # ===================== Mapeamento (QUADRO + COPIAR PARA PLANILHA) =====================
+    # ===================== Mapeamento (QUADRO COM EVIDÊNCIA + PÁGINA) =====================
     if includes_systematic(render_mode):
         with st_tabs[tab_idx]:
             docs = (sys_data or {}).get("documentos", [])
@@ -774,42 +763,43 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         })
                 df_long = pd.DataFrame(rows_long)
 
-                # Resposta + página na própria célula: "texto... (p. X)"
-                def fmt_resp(row):
-                    resp = (row.get("Resposta") or "").strip()
+                # >>>>>>>>>>>> AQUI ESTÁ A MUDANÇA: a célula do quadro usa EVIDÊNCIA (citação) + página
+                def fmt_evid(row):
+                    evid = (row.get("Evidência") or "").strip()
                     pag = row.get("Página", None)
                     pag_txt = f"{pag}" if (pag is not None and str(pag).strip() != "") else "null"
-                    if resp:
-                        return f"{resp} (p. {pag_txt})"
-                    return f"(p. {pag_txt})"
+                    # Formato parecido com o seu print: "... (p. X)"
+                    if evid:
+                        return f'{evid} (p. {pag_txt})'
+                    return f'(p. {pag_txt})'
 
-                df_long["Resposta_com_pagina"] = df_long.apply(fmt_resp, axis=1)
+                df_long["Evidencia_com_pagina"] = df_long.apply(fmt_evid, axis=1)
 
-                # QUADRO wide: documento x perguntas
+                # Quadro wide: Documento nas linhas, Perguntas nas colunas, conteúdo = evidência literal + página
                 df_wide = (
                     df_long
-                    .pivot_table(index="Documento", columns="Pergunta", values="Resposta_com_pagina", aggfunc="first")
+                    .pivot_table(index="Documento", columns="Pergunta", values="Evidencia_com_pagina", aggfunc="first")
                     .reset_index()
                 )
 
                 st.markdown(
                     '<div class="qa-shell" style="margin-top: 10px; margin-bottom: 12px;">'
-                    '<h4 style="margin:0; color:var(--accent2);">🧾 Quadro do Mapeamento (com página na resposta)</h4>'
-                    '<p style="margin:6px 0 0 0; color:var(--muted); font-size:13px;">Cada célula termina com (p. X). Copie/cole na planilha.</p>'
+                    '<h4 style="margin:0; color:var(--accent2);">🧾 Quadro do Mapeamento (EVIDÊNCIA literal + página)</h4>'
+                    '<p style="margin:6px 0 0 0; color:var(--muted); font-size:13px;">Cada célula contém a citação literal do artigo e termina com (p. X).</p>'
                     '</div>',
                     unsafe_allow_html=True
                 )
 
-                # Exportar CSV do quadro
+                # Exportações
                 st.download_button(
                     "Exportar CSV (quadro)",
                     df_wide.to_csv(index=False).encode("utf-8"),
-                    "quadro_mapeamento.csv",
+                    "quadro_mapeamento_evidencias.csv",
                     "text/csv",
                     use_container_width=True
                 )
 
-                # TSV para colar em planilha (tab-separated)
+                # TSV para colar direto em Google Sheets/Excel (mantém colunas)
                 import io, csv
                 def df_to_tsv(df: pd.DataFrame) -> str:
                     output = io.StringIO()
@@ -821,7 +811,6 @@ if st.session_state.analysis_done and st.session_state.result_data:
 
                 tsv_wide = df_to_tsv(df_wide)
 
-                # Botão copiar (clipboard) + fallback
                 import streamlit.components.v1 as components
                 def copy_button_tsv(tsv_text: str, label: str, key: str):
                     safe = tsv_text.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
@@ -864,7 +853,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     st.download_button(
                         "Baixar TSV (quadro)",
                         tsv_wide.encode("utf-8"),
-                        "quadro_mapeamento.tsv",
+                        "quadro_mapeamento_evidencias.tsv",
                         "text/tab-separated-values",
                         use_container_width=True
                     )
@@ -877,7 +866,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         key="tsv_quadro_text"
                     )
 
-                # Mostrar quadro na tela
+                # Mostrar na tela (leitura)
                 st.dataframe(
                     df_wide,
                     use_container_width=True,
@@ -885,8 +874,8 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     height=520
                 )
 
-                # (Opcional) formato LONG exportável
-                with st.expander("Exportar também o formato LONG (com Evidência e Página em colunas separadas)", expanded=False):
+                # Exportar também o LONG (para auditoria)
+                with st.expander("Exportar formato LONG (auditoria: resposta, evidência e página em colunas separadas)", expanded=False):
                     st.download_button(
                         "Exportar CSV (long)",
                         df_long[["Documento", "Pergunta", "Resposta", "Evidência", "Página"]].to_csv(index=False).encode("utf-8"),
