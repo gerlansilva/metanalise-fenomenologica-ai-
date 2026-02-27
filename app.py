@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import pandas as pd
 import json
@@ -6,10 +5,9 @@ import os
 import time
 import threading
 import requests
-import hashlib
-import html
+import io
+import csv
 import streamlit.components.v1 as components
-
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 from google import genai
 from google.genai import types
@@ -258,8 +256,55 @@ class AnalysisResult(BaseModel):
     sistematico: SystematicResult | None = None
 
 # ============================================================
-# FUNÇÕES AUXILIARES (IA / RIS / PDF)
+# FUNÇÕES AUXILIARES
 # ============================================================
+def df_to_tsv(df: pd.DataFrame) -> str:
+    """Converte DataFrame em TSV para colar em planilhas (Google Sheets/Excel)."""
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter="\t", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
+    writer.writerow(df.columns.tolist())
+    for row in df.itertuples(index=False):
+        writer.writerow(list(row))
+    return output.getvalue()
+
+def copy_button_tsv(tsv_text: str, label: str, key: str):
+    """
+    Botão copiar para clipboard via JS.
+    Pode falhar em alguns ambientes; por isso também exibimos uma text_area de fallback.
+    """
+    safe = tsv_text.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
+    components.html(
+        f"""
+        <button id="{key}" style="
+            width:100%;
+            padding:10px 14px;
+            border-radius:14px;
+            border:1px solid rgba(47,36,28,0.16);
+            background: var(--panel2);
+            color: var(--text);
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: var(--shadow2);
+        ">{label}</button>
+
+        <script>
+          const btn = document.getElementById("{key}");
+          btn.addEventListener("click", async () => {{
+            try {{
+              const text = `{safe}`;
+              await navigator.clipboard.writeText(text);
+              btn.innerText = "✅ Copiado!";
+              setTimeout(() => btn.innerText = "{label}", 1400);
+            }} catch (e) {{
+              btn.innerText = "⚠️ Não consegui copiar (use a caixa abaixo)";
+              setTimeout(() => btn.innerText = "{label}", 2200);
+            }}
+          }});
+        </script>
+        """,
+        height=55,
+    )
+
 def gerar_sintese_transversal(pergunta: str, df_sub: pd.DataFrame) -> str:
     linhas = []
     for _, r in df_sub.iterrows():
@@ -297,19 +342,15 @@ def parse_ris(ris_text):
     current = {}
     for line in ris_text.splitlines():
         line = line.strip()
-        if not line:
-            continue
+        if not line: continue
         if line.startswith('ER  -'):
-            if current:
-                entries.append(current)
+            if current: entries.append(current)
             current = {}
         elif len(line) >= 6 and line[4:6] == '- ':
             key = line[:2]
             val = line[6:].strip()
-            if key in current:
-                current[key] = current[key] + " ; " + val
-            else:
-                current[key] = val
+            if key in current: current[key] = current[key] + " ; " + val
+            else: current[key] = val
     return entries
 
 def fetch_oa_pdf(doi):
@@ -329,187 +370,9 @@ def fetch_oa_pdf(doi):
         pass
     return None
 
-def includes_phenom(m: str) -> bool:
-    return m in ["Fenomenológico", "Fenomenológico + Mapeamento", "Todos (3 modos)"]
-
-def includes_thematic(m: str) -> bool:
-    return m in ["Temático (Braun & Clarke)", "Temático + Mapeamento", "Todos (3 modos)"]
-
-def includes_systematic(m: str) -> bool:
-    return m in ["Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"]
-
-# ============================================================
-# FUNÇÕES AUXILIARES (MAPEAMENTO: PIVOT + TABELA STICKY)
-# ============================================================
-def build_sys_pivot_table(df_long: pd.DataFrame) -> pd.DataFrame:
-    """
-    Pivot: linhas=Documento (vertical), colunas=Pergunta (horizontal).
-    Cada célula contém Resposta + Evidência + Página (tudo na célula).
-    """
-    df = df_long.copy()
-    df["Documento"] = df["Documento"].fillna("Sem documento").astype(str)
-    df["Pergunta"] = df["Pergunta"].fillna("Sem pergunta").astype(str)
-
-    def fmt_cell(r):
-        resp = (r.get("Resposta") or "").strip()
-        evid = (r.get("Evidência") or "").strip()
-        pag = r.get("Página", None)
-        pag_txt = f"{pag}" if (pag is not None and str(pag).strip() != "") else "null"
-
-        parts = []
-        parts.append(f"**Resposta:** {resp}" if resp else "**Resposta:** —")
-        parts.append(f"**Evidência:** “{evid}”" if evid else "**Evidência:** —")
-        parts.append(f"**Página:** {pag_txt}")
-        return "\n".join(parts).strip()
-
-    df["Celula"] = df.apply(fmt_cell, axis=1)
-
-    # Se tiver duplicatas (mesmo doc+pergunta), junta
-    agg = (
-        df.groupby(["Documento", "Pergunta"])["Celula"]
-          .apply(lambda s: "\n\n---\n\n".join([x for x in s if x]))
-          .reset_index()
-    )
-
-    pivot = agg.pivot(index="Documento", columns="Pergunta", values="Celula").fillna("")
-    pivot = pivot.reset_index()
-    return pivot
-
-def render_sticky_table(pivot_df: pd.DataFrame, height_px: int = 560):
-    """
-    Tabela HTML com scroll e sticky header + sticky primeira coluna.
-    """
-    cols = pivot_df.columns.tolist()
-    first_col = cols[0]  # "Documento"
-
-    css = f"""
-    <style>
-      .tbl-wrap {{
-        border: 1px solid rgba(47,36,28,0.18);
-        border-radius: 14px;
-        overflow: auto;
-        height: {height_px}px;
-        background: rgba(241,233,216,0.65);
-        box-shadow: 0 2px 10px rgba(47,36,28,0.06);
-      }}
-
-      table.sys {{
-        border-collapse: separate;
-        border-spacing: 0;
-        width: max-content;
-        min-width: 100%;
-        font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
-        color: var(--text);
-      }}
-
-      thead th {{
-        position: sticky;
-        top: 0;
-        z-index: 5;
-        background: var(--panel);
-        border-bottom: 1px solid rgba(47,36,28,0.18);
-        padding: 10px 12px;
-        font-size: 13px;
-        text-align: left;
-        white-space: nowrap;
-      }}
-
-      tbody td {{
-        border-bottom: 1px solid rgba(47,36,28,0.10);
-        border-right: 1px solid rgba(47,36,28,0.08);
-        padding: 10px 12px;
-        vertical-align: top;
-        font-size: 13px;
-        line-height: 1.45;
-        background: rgba(237,228,209,0.55);
-        min-width: 360px;
-        max-width: 640px;
-        white-space: pre-wrap;
-      }}
-
-      tbody tr:hover td {{
-        background: rgba(194,106,46,0.07);
-      }}
-
-      /* 1ª coluna sticky */
-      th.sticky-col, td.sticky-col {{
-        position: sticky;
-        left: 0;
-        z-index: 6;
-        background: var(--panel2);
-        border-right: 1px solid rgba(47,36,28,0.18);
-        min-width: 260px;
-        max-width: 320px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-weight: 800;
-      }}
-
-      /* canto superior esquerdo */
-      thead th.sticky-col {{
-        z-index: 10;
-        background: var(--panel);
-      }}
-
-      .cell-strong b {{
-        color: var(--accent2);
-      }}
-
-      .muted {{
-        color: var(--muted);
-      }}
-
-      .divider {{
-        margin: 10px 0;
-        height: 1px;
-        background: rgba(47,36,28,0.12);
-      }}
-    </style>
-    """
-
-    def md_bold_to_html(text: str) -> str:
-        out = html.escape(text)
-        # negrito simples **...**
-        while "**" in out:
-            out = out.replace("**", "<b>", 1).replace("**", "</b>", 1)
-        out = out.replace("\n\n---\n\n", "<div class='divider'></div>")
-        out = out.replace("\n", "<br>")
-        return f"<div class='cell-strong'>{out}</div>"
-
-    thead = "<thead><tr>"
-    for c in cols:
-        if c == first_col:
-            thead += f"<th class='sticky-col'>{html.escape(c)}</th>"
-        else:
-            thead += f"<th>{html.escape(c)}</th>"
-    thead += "</tr></thead>"
-
-    tbody = "<tbody>"
-    for _, row in pivot_df.iterrows():
-        tbody += "<tr>"
-        for c in cols:
-            val = row.get(c, "")
-            if c == first_col:
-                tbody += f"<td class='sticky-col'>{html.escape(str(val))}</td>"
-            else:
-                cell = str(val).strip()
-                cell_html = md_bold_to_html(cell) if cell else "<span class='muted'>—</span>"
-                tbody += f"<td>{cell_html}</td>"
-        tbody += "</tr>"
-    tbody += "</tbody>"
-
-    html_table = f"""
-    {css}
-    <div class="tbl-wrap">
-      <table class="sys">
-        {thead}
-        {tbody}
-      </table>
-    </div>
-    """
-
-    components.html(html_table, height=height_px + 60, scrolling=False)
+def includes_phenom(m: str) -> bool: return m in ["Fenomenológico", "Fenomenológico + Mapeamento", "Todos (3 modos)"]
+def includes_thematic(m: str) -> bool: return m in ["Temático (Braun & Clarke)", "Temático + Mapeamento", "Todos (3 modos)"]
+def includes_systematic(m: str) -> bool: return m in ["Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"]
 
 # ============================================================
 # TÍTULO CENTRALIZADO
@@ -524,14 +387,7 @@ with st.sidebar:
     st.header("Configurações")
     mode = st.radio(
         "Modo de Análise",
-        [
-            "Fenomenológico",
-            "Temático (Braun & Clarke)",
-            "Mapeamento Sistemático",
-            "Fenomenológico + Mapeamento",
-            "Temático + Mapeamento",
-            "Todos (3 modos)"
-        ],
+        ["Fenomenológico", "Temático (Braun & Clarke)", "Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"],
         horizontal=False,
     )
 
@@ -540,89 +396,69 @@ with st.sidebar:
     sys_q = ""
 
     if includes_phenom(mode):
-        phenom_q = st.text_area(
-            "Interrogação Fenomenológica",
-            placeholder="Ex: Como o fenômeno X se constitui nos textos analisados?",
-            height=110
-        )
+        phenom_q = st.text_area("Interrogação Fenomenológica", placeholder="Ex: Como o fenômeno X se constitui nos textos analisados?", height=110)
 
     if includes_thematic(mode):
-        thematic_q = st.text_area(
-            "Questão orientadora (Análise Temática)",
-            placeholder="Ex: Quais padrões se repetem sobre métodos, ferramentas, objetivos e resultados?",
-            height=90
-        )
+        thematic_q = st.text_area("Questão orientadora (Análise Temática)", placeholder="Ex: Quais padrões se repetem sobre métodos, ferramentas, objetivos e resultados?", height=90)
 
     if includes_systematic(mode):
-        sys_q = st.text_area(
-            "Perguntas para Mapeamento Sistemático (1 por linha)",
-            placeholder="1. Qual é o objetivo do estudo?\n2. Qual metodologia é utilizada?",
-            height=150
-        )
+        sys_q = st.text_area("Perguntas para Mapeamento Sistemático (1 por linha)", placeholder="1. Qual é o objetivo do estudo?\n2. Qual metodologia é utilizada?", height=150)
 
     st.markdown("---")
     st.subheader("📚 Corpus Documental")
 
     # 1. RIS UPLOADER
     with st.expander("📥 Importar arquivo .RIS (Scopus/OpenAlex)", expanded=False):
-        st.markdown(
-            "<p style='font-size:13px; color:var(--muted);'>Faz o download automático de PDFs Open Access a partir do DOI. Artigos fechados terão o resumo extraído.</p>",
-            unsafe_allow_html=True
-        )
+        st.markdown("<p style='font-size:13px; color:var(--muted);'>Faz o download automático de PDFs Open Access a partir do DOI. Artigos fechados terão o resumo extraído.</p>", unsafe_allow_html=True)
         ris_file = st.file_uploader("Arquivo .ris", type=["ris", "txt"])
-
+        
         if ris_file and st.button("Processar e Baixar PDFs"):
             with st.spinner("Lendo arquivo RIS..."):
                 ris_text = ris_file.getvalue().decode("utf-8", errors="ignore")
                 entries = parse_ris(ris_text)
-
+                
                 st.session_state.ris_pdfs = []
                 st.session_state.ris_texts = []
-
-                progress_bar = st.progress(0.0)
+                
+                progress_bar = st.progress(0)
                 status_text = st.empty()
-
+                
                 for i, entry in enumerate(entries):
                     title = entry.get('TI', 'Sem título')
                     doi = entry.get('DO', '').replace('https://doi.org/', '').strip()
                     abstract = entry.get('AB', '')
-
+                    
                     status_text.text(f"Buscando ({i+1}/{len(entries)}): {title[:30]}...")
-
+                    
                     pdf_bytes = None
                     if doi:
                         pdf_bytes = fetch_oa_pdf(doi)
-
+                    
                     if pdf_bytes:
                         st.session_state.ris_pdfs.append({"name": f"RIS: {title[:30]}.pdf", "bytes": pdf_bytes})
                     elif abstract:
                         content = f"Título: {title}\nDOI: {doi}\n\nResumo:\n{abstract}"
                         st.session_state.ris_texts.append({"name": f"RIS (Resumo): {title[:30]}", "text": content})
-
+                        
                     progress_bar.progress((i + 1) / max(1, len(entries)))
-
-                status_text.success(
-                    f"Concluído! {len(st.session_state.ris_pdfs)} PDFs baixados, {len(st.session_state.ris_texts)} resumos extraídos."
-                )
+                    
+                status_text.success(f"Concluído! {len(st.session_state.ris_pdfs)} PDFs baixados, {len(st.session_state.ris_texts)} resumos extraídos.")
 
     # 2. FILE UPLOADER MANUAL
     uploaded_files = st.file_uploader("Ou envie seus PDFs manualmente", type="pdf", accept_multiple_files=True)
-
+    
     # Mostrar corpus atual
     total_docs = len(uploaded_files or []) + len(st.session_state.ris_pdfs) + len(st.session_state.ris_texts)
     if total_docs > 0:
         st.markdown(f"**Documentos prontos para análise ({total_docs}):**")
-        for f in (uploaded_files or []):
-            st.markdown(f"- 📄 {f.name}")
-        for d in st.session_state.ris_pdfs:
-            st.markdown(f"- 📥 {d['name']}")
-        for d in st.session_state.ris_texts:
-            st.markdown(f"- 📝 {d['name']}")
-        if st.button("Limpar Corpus Importado"):
+        for f in (uploaded_files or []): st.markdown(f"- 📄 {f.name}")
+        for d in st.session_state.ris_pdfs: st.markdown(f"- 📥 {d['name']}")
+        for d in st.session_state.ris_texts: st.markdown(f"- 📝 {d['name']}")
+        if st.button("Limpar Corpus Importado"): 
             st.session_state.ris_pdfs = []
             st.session_state.ris_texts = []
             st.rerun()
-
+    
     st.markdown("<br>", unsafe_allow_html=True)
     run = st.button("▶ Iniciar Análise do Corpus", type="primary", disabled=(total_docs == 0))
 
@@ -643,7 +479,7 @@ if run:
 
     total_size = sum([f.size for f in (uploaded_files or [])]) + sum([len(p['bytes']) for p in st.session_state.ris_pdfs])
     if total_size > 15 * 1024 * 1024:
-        st.error("O tamanho total excede 15 MB. Reduza a quantidade de PDFs.")
+        st.error(f"O tamanho total excede 15 MB. Reduza a quantidade de PDFs.")
         st.stop()
 
     timer_placeholder = st.empty()
@@ -664,7 +500,7 @@ if run:
     try:
         # Prepara PDFs manuais
         gemini_files = [types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf") for f in (uploaded_files or [])]
-
+        
         # Prepara PDFs baixados do RIS
         for pdf_doc in st.session_state.ris_pdfs:
             gemini_files.append(types.Part.from_bytes(data=pdf_doc['bytes'], mime_type="application/pdf"))
@@ -676,34 +512,15 @@ if run:
         prompt_text = "Leia todos os documentos anexados como um corpus único.\n\n"
 
         if includes_phenom(mode):
-            prompt_text += (
-                f"=== MODO FENOMENOLÓGICO ===\n"
-                f"INTERROGAÇÃO FENOMENOLÓGICA:\n\"{phenom_q}\"\n\n"
-                f"ETAPA 1: Extraia unidades de sentido (documento, página, citação literal exata, contexto e justificativa).\n"
-                f"REGRAS: NÃO parafrasear a citação; NÃO inventar páginas; NÃO omitir documento.\n"
-                f"ETAPA 2: Transforme cada unidade em unidade de significado.\n"
-                f"ETAPA 3: Agrupe convergências.\n"
-                f"ETAPA 4: Sugira categorias fenomenológicas.\n\n"
-            )
+            prompt_text += f"=== MODO FENOMENOLÓGICO ===\nINTERROGAÇÃO FENOMENOLÓGICA:\n\"{phenom_q}\"\n\nETAPA 1: Extraia unidades de sentido (documento, página, citação literal exata, contexto e justificativa).\nREGRAS: NÃO parafrasear a citação; NÃO inventar páginas; NÃO omitir documento.\nETAPA 2: Transforme cada unidade em unidade de significado.\nETAPA 3: Agrupe convergências.\nETAPA 4: Sugira categorias fenomenológicas.\n\n"
 
         if includes_thematic(mode):
             prompt_text += "=== MODO ANÁLISE TEMÁTICA (Braun & Clarke) ===\n"
-            if thematic_q.strip():
-                prompt_text += f"QUESTÃO ORIENTADORA (OPCIONAL):\n\"{thematic_q}\"\n\n"
-            prompt_text += (
-                "Execute as fases 2–5:\n"
-                "FASE 2 (Códigos iniciais): extraia códigos com TRECHO literal, documento, página, nome do código e descrição operacional.\n"
-                "FASE 3–5 (Temas): agrupe códigos em temas; para cada tema: nome, descrição, lista de IDs de códigos relacionados e interpretação.\n"
-                "REGRAS: Trechos devem ser literais; não inventar páginas; se página não identificável, use null.\n\n"
-            )
+            if thematic_q.strip(): prompt_text += f"QUESTÃO ORIENTADORA (OPCIONAL):\n\"{thematic_q}\"\n\n"
+            prompt_text += "Execute as fases 2–5:\nFASE 2 (Códigos iniciais): extraia códigos com TRECHO literal, documento, página, nome do código e descrição operacional.\nFASE 3–5 (Temas): agrupe códigos em temas; para cada tema: nome, descrição, lista de IDs de códigos relacionados e interpretação.\nREGRAS: Trechos devem ser literais; não inventar páginas; se página não identificável, use null.\n\n"
 
         if includes_systematic(mode):
-            prompt_text += (
-                f"=== MODO MAPEAMENTO SISTEMÁTICO ===\n"
-                f"Responda às perguntas abaixo para CADA documento:\n{sys_q}\n\n"
-                f"REGRAS: Respostas objetivas (máx. 3 frases). Cite evidência textual literal e página.\n"
-                f"Se página não puder ser identificada com certeza, retorne null.\n\n"
-            )
+            prompt_text += f"=== MODO MAPEAMENTO SISTEMÁTICO ===\nResponda às perguntas abaixo para CADA documento:\n{sys_q}\n\nREGRAS: Respostas objetivas (máx. 3 frases). Cite evidência textual literal e página.\nSe página não puder ser identificada com certeza, retorne null.\n\n"
 
         contents = gemini_files + [prompt_text]
 
@@ -711,12 +528,7 @@ if run:
             model="gemini-2.5-flash",
             contents=contents,
             config=types.GenerateContentConfig(
-                system_instruction=(
-                    "Você é um assistente de análise qualitativa de corpus documental. "
-                    "Nunca invente conteúdo. Preserve rastreabilidade. "
-                    "Se o número da página não puder ser identificado com certeza, use null. "
-                    "Respeite o schema JSON estritamente."
-                ),
+                system_instruction="Você é um assistente de análise qualitativa de corpus documental. Nunca invente conteúdo. Preserve rastreabilidade. Se o número da página não puder ser identificado com certeza, use null. Respeite o schema JSON estritamente.",
                 response_mime_type="application/json",
                 response_schema=AnalysisResult,
                 temperature=0.2,
@@ -766,34 +578,19 @@ if st.session_state.analysis_done and st.session_state.result_data:
     if includes_phenom(render_mode):
         with st_tabs[tab_idx]:
             unidades = (phenom_data or {}).get("unidades_sentido", [])
-            if not unidades:
-                st.warning("Nenhuma unidade de sentido foi retornada.")
+            if not unidades: st.warning("Nenhuma unidade de sentido foi retornada.")
             else:
                 df_us = pd.DataFrame(unidades)
                 c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("ID/DOC/PÁG • Citação literal • Contexto & Justificativa")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_us.to_csv(index=False).encode("utf-8"),
-                        "unidades_sentido.csv",
-                        "text/csv",
-                        use_container_width=True
-                    )
-
+                with c1: st.caption("ID/DOC/PÁG • Citação literal • Contexto & Justificativa")
+                with c2: st.download_button("Exportar CSV", df_us.to_csv(index=False).encode("utf-8"), "unidades_sentido.csv", "text/csv", use_container_width=True)
                 for _, r in df_us.iterrows():
                     uid, doc, pag = r.get("id_unidade", ""), r.get("documento", ""), r.get("pagina", None)
                     pag_txt = f"Pág. {pag}" if pag is not None else "Pág. null"
-                    cit = r.get("citacao_literal", "")
-                    ctx = (r.get("contexto_resumido", "") or "").strip()
-                    jus = (r.get("justificativa_fenomenologica", "") or "").strip()
+                    cit, ctx, jus = r.get("citacao_literal", ""), (r.get("contexto_resumido", "") or "").strip(), (r.get("justificativa_fenomenologica", "") or "").strip()
                     cj_html = ""
-                    if ctx:
-                        cj_html += f'<div style="font-size:12px; font-weight:bold; color:var(--muted);">CONTEXTO</div><div style="margin-bottom:10px;">{ctx}</div>'
-                    if jus:
-                        cj_html += f'<div style="font-size:12px; font-weight:bold; color:var(--muted);">JUSTIFICATIVA</div><div>{jus}</div>'
-
+                    if ctx: cj_html += f'<div style="font-size:12px; font-weight:bold; color:var(--muted);">CONTEXTO</div><div style="margin-bottom:10px;">{ctx}</div>'
+                    if jus: cj_html += f'<div style="font-size:12px; font-weight:bold; color:var(--muted);">JUSTIFICATIVA</div><div>{jus}</div>'
                     st.markdown(f"""
                         <div class="qa-shell" style="margin-bottom: 15px;">
                           <div style="display:flex; gap:10px; margin-bottom:10px;">
@@ -802,27 +599,17 @@ if st.session_state.analysis_done and st.session_state.result_data:
                           <div class="quote" style="margin-bottom:15px;">"{cit}"</div>
                           <div style="background: rgba(255,255,255,0.4); padding: 12px; border-radius: 10px;">{cj_html}</div>
                         </div>
-                    """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
         tab_idx += 1
 
         with st_tabs[tab_idx]:
             unidades_sig = (phenom_data or {}).get("unidades_significado", [])
-            if not unidades_sig:
-                st.warning("Nenhuma unidade de significado foi retornada.")
+            if not unidades_sig: st.warning("Nenhuma unidade de significado foi retornada.")
             else:
                 df_um = pd.DataFrame(unidades_sig)
                 c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("ID/Documento • Trecho original • Síntese de significado")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_um.to_csv(index=False).encode("utf-8"),
-                        "unidades_significado.csv",
-                        "text/csv",
-                        use_container_width=True
-                    )
-
+                with c1: st.caption("ID/Documento • Trecho original • Síntese de significado")
+                with c2: st.download_button("Exportar CSV", df_um.to_csv(index=False).encode("utf-8"), "unidades_significado.csv", "text/csv", use_container_width=True)
                 for _, r in df_um.iterrows():
                     st.markdown(f"""
                         <div class="qa-shell" style="margin-bottom: 15px;">
@@ -834,42 +621,22 @@ if st.session_state.analysis_done and st.session_state.result_data:
                             <div><div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:5px;">SÍNTESE</div><div style="background: rgba(194,106,46,0.1); padding: 12px; border-radius: 10px; color: var(--accent2); font-weight: 600;">{r.get("sintese", "")}</div></div>
                           </div>
                         </div>
-                    """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
         tab_idx += 1
 
         with st_tabs[tab_idx]:
             categorias = (phenom_data or {}).get("categorias", [])
-            if not categorias:
-                st.warning("Nenhuma categoria foi retornada.")
+            if not categorias: st.warning("Nenhuma categoria foi retornada.")
             else:
-                df_cat = pd.DataFrame([{
-                    "nome": c.get("nome"),
-                    "descricao": c.get("descricao"),
-                    "unidades_relacionadas": ", ".join(c.get("unidades_relacionadas", []))
-                } for c in categorias])
-
+                df_cat = pd.DataFrame([{"nome": c.get("nome"), "descricao": c.get("descricao"), "unidades_relacionadas": ", ".join(c.get("unidades_relacionadas", []))} for c in categorias])
                 c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("Categorias fenomenológicas")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_cat.to_csv(index=False).encode("utf-8"),
-                        "categorias.csv",
-                        "text/csv",
-                        use_container_width=True
-                    )
-
-                cols3 = st.columns(3)
+                with c1: st.caption("Categorias fenomenológicas")
+                with c2: st.download_button("Exportar CSV", df_cat.to_csv(index=False).encode("utf-8"), "categorias.csv", "text/csv", use_container_width=True)
+                cols = st.columns(3)
                 for i, c in enumerate(categorias):
-                    with cols3[i % 3]:
+                    with cols[i % 3]:
                         rel = c.get("unidades_relacionadas", [])
-                        chips_html = (
-                            '<div style="display:flex; flex-wrap:wrap; gap:5px;">'
-                            + "".join([f'<span class="chip" style="font-size:11px;">{u}</span>' for u in rel])
-                            + "</div>"
-                        ) if rel else '-'
-
+                        chips_html = '<div style="display:flex; flex-wrap:wrap; gap:5px;">' + "".join([f'<span class="chip" style="font-size:11px;">{u}</span>' for u in rel]) + "</div>" if rel else '-'
                         st.markdown(f"""
                             <div class="qa-shell" style="height: 100%; margin-bottom: 15px;">
                               <h3 style="color: var(--accent2); margin-top:0;">{c.get("nome", "")}</h3>
@@ -877,29 +644,19 @@ if st.session_state.analysis_done and st.session_state.result_data:
                               <div style="font-size:11px; font-weight:bold; color:var(--muted); margin-bottom:5px; margin-top:15px;">UNIDADES RELACIONADAS</div>
                               {chips_html}
                             </div>
-                        """, unsafe_allow_html=True)
+                            """, unsafe_allow_html=True)
         tab_idx += 1
 
     # ===================== Temática =====================
     if includes_thematic(render_mode):
         with st_tabs[tab_idx]:
             codigos = (them_data or {}).get("codigos", [])
-            if not codigos:
-                st.warning("Nenhum código foi retornado.")
+            if not codigos: st.warning("Nenhum código foi retornado.")
             else:
                 df_cod = pd.DataFrame(codigos)
                 c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("ID/DOC/PÁG • Trecho literal • Código & definição")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_cod.to_csv(index=False).encode("utf-8"),
-                        "codigos.csv",
-                        "text/csv",
-                        use_container_width=True
-                    )
-
+                with c1: st.caption("ID/DOC/PÁG • Trecho literal • Código & definição")
+                with c2: st.download_button("Exportar CSV", df_cod.to_csv(index=False).encode("utf-8"), "codigos.csv", "text/csv", use_container_width=True)
                 for _, r in df_cod.iterrows():
                     pag = r.get("pagina", None)
                     pag_txt = f"Pág. {pag}" if pag is not None else "Pág. null"
@@ -916,43 +673,22 @@ if st.session_state.analysis_done and st.session_state.result_data:
                             </div>
                           </div>
                         </div>
-                    """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
         tab_idx += 1
 
         with st_tabs[tab_idx]:
             temas = (them_data or {}).get("temas", [])
-            if not temas:
-                st.warning("Nenhum tema foi retornado.")
+            if not temas: st.warning("Nenhum tema foi retornado.")
             else:
-                df_temas = pd.DataFrame([{
-                    "nome": t.get("nome"),
-                    "descricao": t.get("descricao"),
-                    "interpretacao": t.get("interpretacao"),
-                    "codigos_relacionados": ", ".join(t.get("codigos_relacionados", []))
-                } for t in temas])
-
+                df_temas = pd.DataFrame([{"nome": t.get("nome"), "descricao": t.get("descricao"), "interpretacao": t.get("interpretacao"), "codigos_relacionados": ", ".join(t.get("codigos_relacionados", []))} for t in temas])
                 c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("Temas (cards)")
-                with c2:
-                    st.download_button(
-                        "Exportar CSV",
-                        df_temas.to_csv(index=False).encode("utf-8"),
-                        "temas.csv",
-                        "text/csv",
-                        use_container_width=True
-                    )
-
-                cols2 = st.columns(2)
+                with c1: st.caption("Temas (cards)")
+                with c2: st.download_button("Exportar CSV", df_temas.to_csv(index=False).encode("utf-8"), "temas.csv", "text/csv", use_container_width=True)
+                cols = st.columns(2)
                 for i, t in enumerate(temas):
-                    with cols2[i % 2]:
+                    with cols[i % 2]:
                         rel = t.get("codigos_relacionados", [])
-                        chips_html = (
-                            '<div style="display:flex; flex-wrap:wrap; gap:5px;">'
-                            + "".join([f'<span class="chip" style="font-size:11px;">{u}</span>' for u in rel])
-                            + "</div>"
-                        ) if rel else '-'
-
+                        chips_html = '<div style="display:flex; flex-wrap:wrap; gap:5px;">' + "".join([f'<span class="chip" style="font-size:11px;">{u}</span>' for u in rel]) + "</div>" if rel else '-'
                         st.markdown(f"""
                             <div class="qa-shell" style="height: 100%; margin-bottom: 15px;">
                               <h3 style="color: var(--accent2); margin-top:0;">{t.get("nome", "")}</h3>
@@ -964,10 +700,10 @@ if st.session_state.analysis_done and st.session_state.result_data:
                               <div style="font-size:11px; font-weight:bold; color:var(--muted); margin-bottom:5px;">CÓDIGOS RELACIONADOS</div>
                               {chips_html}
                             </div>
-                        """, unsafe_allow_html=True)
+                            """, unsafe_allow_html=True)
         tab_idx += 1
 
-    # ===================== Mapeamento (NOVO: pivot + sticky) =====================
+    # ===================== Mapeamento (com copiar TSV) =====================
     if includes_systematic(render_mode):
         with st_tabs[tab_idx]:
             docs = (sys_data or {}).get("documentos", [])
@@ -986,46 +722,117 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         })
                 df_long = pd.DataFrame(rows_long)
 
-                # Export long (rastreabilidade)
+                # Export CSV completo (mantém)
                 st.download_button(
-                    "Exportar CSV (long)",
+                    "Exportar CSV (mapeamento completo)",
                     df_long.to_csv(index=False).encode("utf-8"),
-                    "mapeamento_long.csv",
+                    "mapeamento.csv",
                     "text/csv",
                     use_container_width=True
                 )
 
-                # Pivot
-                pivot_df = build_sys_pivot_table(df_long)
-
-                # Export pivot
-                st.download_button(
-                    "Exportar CSV (pivot)",
-                    pivot_df.to_csv(index=False).encode("utf-8"),
-                    "mapeamento_pivot.csv",
-                    "text/csv",
-                    use_container_width=True
-                )
-
-                # Opções de visualização
-                c1, c2, c3 = st.columns([1.2, 1.2, 2.6], vertical_alignment="center")
-                with c1:
-                    height = st.slider("Altura", 360, 900, 560, 20)
-                with c2:
-                    max_docs = st.number_input("Máx. docs na tela", min_value=5, max_value=500, value=150, step=5)
-                with c3:
-                    filtro = st.text_input("Filtrar documentos (contém)", placeholder="Ex: Silva, 2022 / título / DOI...")
-
-                view_df = pivot_df.copy()
-                if filtro.strip():
-                    view_df = view_df[view_df["Documento"].astype(str).str.contains(filtro.strip(), case=False, na=False)]
-                view_df = view_df.head(int(max_docs))
-
+                # Quadro completo para colar (TSV)
                 st.markdown(
-                    f"<div class='qa-shell' style='margin: 14px 0;'><b>Documentos:</b> {len(view_df)} &nbsp;•&nbsp; <b>Perguntas:</b> {len(view_df.columns)-1}</div>",
+                    '<div class="qa-shell" style="margin-top: 18px; margin-bottom: 12px;">'
+                    '<h4 style="margin:0; color:var(--accent2);">📋 Quadro completo (para colar na planilha)</h4>'
+                    '<p style="margin:6px 0 0 0; color:var(--muted); font-size:13px;">Formato TSV (colunas separadas por TAB). Cole direto no Google Sheets/Excel.</p>'
+                    '</div>',
                     unsafe_allow_html=True
                 )
 
-                # Render
-                render_sticky_table(view_df, height_px=int(height))
-```
+                df_all = df_long[["Documento", "Pergunta", "Resposta", "Evidência", "Página"]].copy()
+                tsv_all = df_to_tsv(df_all)
+
+                c1, c2 = st.columns([1.2, 2.2], vertical_alignment="center")
+                with c1:
+                    copy_button_tsv(tsv_all, "📋 Copiar quadro completo (TSV)", key="copy_all_tsv")
+                with c2:
+                    st.download_button(
+                        "Baixar TSV (quadro completo)",
+                        tsv_all.encode("utf-8"),
+                        "mapeamento.tsv",
+                        "text/tab-separated-values",
+                        use_container_width=True
+                    )
+
+                with st.expander("Abrir quadro completo em texto (se o copiar falhar)", expanded=False):
+                    st.text_area(
+                        "Selecione tudo (Ctrl/Cmd + A) e copie (Ctrl/Cmd + C). Depois cole na planilha.",
+                        value=tsv_all,
+                        height=220,
+                        key="tsv_all_text"
+                    )
+
+                st.markdown("---")
+
+                perguntas = df_long["Pergunta"].dropna().unique().tolist()
+
+                for pergunta in perguntas:
+                    sub = df_long[df_long["Pergunta"] == pergunta].copy()
+
+                    st.markdown(
+                        f'<div class="qa-shell" style="margin-top: 20px; margin-bottom: 10px;">'
+                        f'<h4 style="margin:0; color:var(--accent2);">🔎 {pergunta}</h4>'
+                        f'<p style="margin:6px 0 0 0; color:var(--muted); font-size:13px;">Copie este quadro e cole como tabela na planilha.</p>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+
+                    df_q = sub[["Documento", "Resposta", "Evidência", "Página"]].copy()
+                    tsv_q = df_to_tsv(df_q)
+
+                    b1, b2, b3 = st.columns([1.2, 1.2, 2.0], vertical_alignment="center")
+                    with b1:
+                        copy_button_tsv(tsv_q, "📋 Copiar quadro (TSV)", key=f"copy_q_{abs(hash(pergunta))}")
+                    with b2:
+                        st.download_button(
+                            "Baixar TSV",
+                            tsv_q.encode("utf-8"),
+                            f"mapeamento_{abs(hash(pergunta))}.tsv",
+                            "text/tab-separated-values",
+                            use_container_width=True
+                        )
+                    with b3:
+                        st.download_button(
+                            "Baixar CSV",
+                            df_q.to_csv(index=False).encode("utf-8"),
+                            f"mapeamento_{abs(hash(pergunta))}.csv",
+                            "text/csv",
+                            use_container_width=True
+                        )
+
+                    with st.expander("Abrir TSV desta pergunta (se o copiar falhar)", expanded=False):
+                        st.text_area(
+                            "Selecione tudo e copie/cole na planilha.",
+                            value=tsv_q,
+                            height=160,
+                            key=f"tsv_q_text_{abs(hash(pergunta))}"
+                        )
+
+                    # Síntese transversal (mantém)
+                    if st.button("Gerar síntese transversal", key=f"sintese_{abs(hash(pergunta))}"):
+                        with st.spinner("Gerando síntese..."):
+                            st.session_state.cross_synthesis[pergunta] = gerar_sintese_transversal(pergunta, sub)
+
+                    if pergunta in st.session_state.cross_synthesis:
+                        st.markdown(f"""
+                            <div style="background: rgba(194,106,46,0.1); padding: 20px; border-radius: 14px; margin-bottom: 20px; border: 1px solid rgba(194,106,46,0.2);">
+                                <h5 style="color: var(--accent2); margin-top:0;">Síntese Transversal</h5>
+                                <div style="white-space: pre-wrap; font-size: 14px;">{st.session_state.cross_synthesis[pergunta]}</div>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+                    # Render atual (cards)
+                    for _, r in sub.iterrows():
+                        pag = r.get("Página", None)
+                        pag_txt = f"Pág. {pag}" if pag is not None else "Pág. null"
+                        st.markdown(f"""
+                            <div style="display: grid; grid-template-columns: 200px 1fr 1fr; gap: 15px; padding: 15px; border-bottom: 1px solid var(--line);">
+                                <div>
+                                    <div style="font-weight: bold; font-size: 14px;">{r.get("Documento", "")}</div>
+                                    <div style="font-size: 12px; color: var(--muted);">{pag_txt}</div>
+                                </div>
+                                <div style="font-size: 14px;">{r.get("Resposta", "")}</div>
+                                <div class="quote" style="font-size: 13px;">"{r.get("Evidência", "")}"</div>
+                            </div>
+                        """, unsafe_allow_html=True)
