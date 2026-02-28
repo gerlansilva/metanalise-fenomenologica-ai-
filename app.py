@@ -50,16 +50,16 @@ html, body { background: var(--bg) !important; }
 .stApp { background: var(--bg) !important; color: var(--text) !important; }
 * { font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
 
-.block-container { max-width: 1320px; padding-top: 36px; padding-bottom: 36px; }
+.block-container { max-width: 1320px; padding-top: 28px; padding-bottom: 32px; }
 
 .qa-title-center{
   font-family: "Josefin Sans", sans-serif;
-  font-weight: 800;
-  font-size: 52px;
+  font-weight: 900;
+  font-size: 48px;
   letter-spacing: -0.02em;
   color: var(--text);
   text-align: center;
-  margin: 0 0 10px 0;
+  margin: 0 0 6px 0;
   background: -webkit-linear-gradient(135deg, var(--accent), var(--accent2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -67,8 +67,8 @@ html, body { background: var(--bg) !important; }
 .qa-subtitle-center {
   text-align: center;
   color: var(--muted);
-  font-size: 16px;
-  margin-bottom: 40px;
+  font-size: 15px;
+  margin-bottom: 28px;
 }
 
 .qa-shell{
@@ -100,6 +100,7 @@ textarea:focus, input:focus {
   background: rgba(241,233,216,0.55) !important;
 }
 
+/* botão principal */
 .stButton > button {
   background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
   color: #fff !important;
@@ -113,6 +114,7 @@ textarea:focus, input:focus {
 }
 .stButton > button:hover { filter: saturate(1.05); transform: translateY(-1px); }
 
+/* download botão padrão (se aparecer) */
 div[data-testid="stDownloadButton"] > button {
   border: 1px solid rgba(47,36,28,0.16) !important;
   background: var(--panel2) !important;
@@ -122,6 +124,7 @@ div[data-testid="stDownloadButton"] > button {
   box-shadow: var(--shadow2) !important;
 }
 
+/* tabs */
 button[data-baseweb="tab"]{
   font-family: "Work Sans", sans-serif !important;
   font-weight: 800 !important;
@@ -134,6 +137,7 @@ div[data-baseweb="tab-highlight"]{
   border-radius: 999px !important;
 }
 
+/* quote + chip */
 .quote{
   font-style: italic;
   line-height: 1.62;
@@ -142,7 +146,6 @@ div[data-baseweb="tab-highlight"]{
   padding-left: 12px;
   color: var(--text);
 }
-
 .chip{
   border: 1px solid rgba(47,36,28,0.14);
   border-radius: 12px;
@@ -152,6 +155,7 @@ div[data-baseweb="tab-highlight"]{
   background: rgba(111,138,115,0.22);
 }
 
+/* scrollbar global */
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(111,138,115,0.75); border-radius: 999px; }
 ::-webkit-scrollbar-track { background: rgba(47,36,28,0.06); }
@@ -303,13 +307,13 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
         f"""
         <button id="{key}" style="
             width:100%;
-            padding:10px 14px;
+            padding:12px 14px;
             border-radius:14px;
             border:1px solid rgba(47,36,28,0.16);
             background:#EDE4D1;
             color:#2F241C;
-            font-weight: 800;
-            cursor: pointer;
+            font-weight:800;
+            cursor:pointer;
             box-shadow: 0 2px 10px rgba(47,36,28,0.08);
         ">{label}</button>
 
@@ -322,22 +326,25 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
               btn.innerText = "✅ Copiado!";
               setTimeout(() => btn.innerText = "{label}", 1400);
             }} catch (e) {{
-              btn.innerText = "⚠️ Não consegui copiar (use a caixa abaixo)";
+              btn.innerText = "⚠️ Falhou (use o TSV abaixo)";
               setTimeout(() => btn.innerText = "{label}", 2200);
             }}
           }});
         </script>
         """,
-        height=55,
+        height=60,
     )
 
-# ✅ ATUALIZADO: render HTML com components.html (não aparece CSS como texto)
+# ✅ QUADRO: HTML real (components.html) + cabeçalho sticky + primeira coluna sticky (Documento)
 def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     def esc(x: str) -> str:
         return (x.replace("&", "&amp;")
                  .replace("<", "&lt;")
                  .replace(">", "&gt;")
                  .replace('"', "&quot;"))
+
+    # Largura da primeira coluna (Documento)
+    doc_w = 320
 
     html = f"""
     <style>
@@ -355,6 +362,7 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         font-size:14px;
         color:#2F241C;
       }}
+
       thead th {{
         position: sticky;
         top: 0;
@@ -364,25 +372,47 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         border-bottom: 1px solid #C9BFA6;
         text-align: left;
         font-weight: 800;
+        min-width: 420px;
       }}
+
+      /* header da coluna Documento: sticky left + sticky top */
+      thead th.doc {{
+        left: 0;
+        z-index: 8;
+        min-width: {doc_w}px;
+        max-width: {doc_w}px;
+        width: {doc_w}px;
+      }}
+
       tbody td {{
         padding: 12px;
         border-bottom: 1px solid rgba(0,0,0,0.06);
         vertical-align: top;
         line-height: 1.55;
         white-space: pre-wrap;
+        min-width: 420px;
       }}
+
+      /* coluna Documento: sticky left */
       tbody td.doc {{
+        position: sticky;
+        left: 0;
+        z-index: 3;
         font-weight: 800;
-        background: rgba(255,255,255,0.25);
-        min-width: 280px;
+        background: rgba(255,255,255,0.40);
+        min-width: {doc_w}px;
+        max-width: {doc_w}px;
+        width: {doc_w}px;
       }}
-      thead th.doc {{
-        min-width: 280px;
+
+      /* zebra */
+      tbody tr:nth-child(odd) td {{
+        background: rgba(255,255,255,0.10);
       }}
-      thead th.qcol {{
-        min-width: 380px;
+      tbody tr:nth-child(odd) td.doc {{
+        background: rgba(255,255,255,0.45);
       }}
+
       .qa-wrap::-webkit-scrollbar {{ width: 10px; height: 10px; }}
       .qa-wrap::-webkit-scrollbar-thumb {{ background: rgba(111,138,115,0.75); border-radius: 999px; }}
       .qa-wrap::-webkit-scrollbar-track {{ background: rgba(47,36,28,0.06); }}
@@ -394,8 +424,10 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     """
 
     for i, col in enumerate(df.columns):
-        cls = "doc" if i == 0 else "qcol"
-        html += f'<th class="{cls}">{esc(str(col))}</th>'
+        if i == 0:
+            html += f'<th class="doc">{esc(str(col))}</th>'
+        else:
+            html += f'<th>{esc(str(col))}</th>'
 
     html += "</tr></thead><tbody>"
 
@@ -655,7 +687,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
     st_tabs = st.tabs(tabs)
     tab_idx = 0
 
-    # ===================== Fenomenológico =====================
+    # ===================== Fenomenológico (mantido) =====================
     if includes_phenom(render_mode):
         with st_tabs[tab_idx]:
             unidades = (phenom_data or {}).get("unidades_sentido", [])
@@ -724,18 +756,6 @@ if st.session_state.analysis_done and st.session_state.result_data:
             if not categorias:
                 st.warning("Nenhuma categoria foi retornada.")
             else:
-                df_cat = pd.DataFrame([{
-                    "nome": c.get("nome"),
-                    "descricao": c.get("descricao"),
-                    "unidades_relacionadas": ", ".join(c.get("unidades_relacionadas", []))
-                } for c in categorias])
-
-                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("Categorias fenomenológicas")
-                with c2:
-                    st.download_button("Exportar CSV", df_cat.to_csv(index=False).encode("utf-8"), "categorias.csv", "text/csv", use_container_width=True)
-
                 cols = st.columns(3)
                 for i, c in enumerate(categorias):
                     with cols[i % 3]:
@@ -756,7 +776,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                             """, unsafe_allow_html=True)
         tab_idx += 1
 
-    # ===================== Temática =====================
+    # ===================== Temática (mantido) =====================
     if includes_thematic(render_mode):
         with st_tabs[tab_idx]:
             codigos = (them_data or {}).get("codigos", [])
@@ -773,7 +793,6 @@ if st.session_state.analysis_done and st.session_state.result_data:
                 for _, r in df_cod.iterrows():
                     pag = r.get("pagina", None)
                     pag_txt = f"Pág. {pag}" if pag is not None else "Pág. null"
-
                     st.markdown(f"""
                         <div class="qa-shell" style="margin-bottom: 15px;">
                           <div style="display:flex; gap:10px; margin-bottom:10px;">
@@ -795,19 +814,6 @@ if st.session_state.analysis_done and st.session_state.result_data:
             if not temas:
                 st.warning("Nenhum tema foi retornado.")
             else:
-                df_temas = pd.DataFrame([{
-                    "nome": t.get("nome"),
-                    "descricao": t.get("descricao"),
-                    "interpretacao": t.get("interpretacao"),
-                    "codigos_relacionados": ", ".join(t.get("codigos_relacionados", []))
-                } for t in temas])
-
-                c1, c2 = st.columns([6, 1.6], vertical_alignment="center")
-                with c1:
-                    st.caption("Temas (cards)")
-                with c2:
-                    st.download_button("Exportar CSV", df_temas.to_csv(index=False).encode("utf-8"), "temas.csv", "text/csv", use_container_width=True)
-
                 cols = st.columns(2)
                 for i, t in enumerate(temas):
                     with cols[i % 2]:
@@ -832,7 +838,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                             """, unsafe_allow_html=True)
         tab_idx += 1
 
-    # ===================== Mapeamento =====================
+    # ===================== Mapeamento (LIMPO: só "Análise" + copiar/baixar + quadro) =====================
     if includes_systematic(render_mode):
         with st_tabs[tab_idx]:
             docs = (sys_data or {}).get("documentos", [])
@@ -846,7 +852,6 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         rows_long.append({
                             "Documento": doc_name,
                             "Pergunta": ans.get("pergunta"),
-                            "Resposta": ans.get("resposta"),
                             "Evidência": ans.get("evidencia_textual"),
                             "Página": ans.get("pagina"),
                         })
@@ -860,62 +865,52 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         return f'{evid} (p. {pag_txt})'
                     return f'(p. {pag_txt})'
 
-                df_long["Evidencia_com_pagina"] = df_long.apply(fmt_evid, axis=1)
+                df_long["Evidência (citação + página)"] = df_long.apply(fmt_evid, axis=1)
 
                 df_wide = (
                     df_long
-                    .pivot_table(index="Documento", columns="Pergunta", values="Evidencia_com_pagina", aggfunc="first")
+                    .pivot_table(
+                        index="Documento",
+                        columns="Pergunta",
+                        values="Evidência (citação + página)",
+                        aggfunc="first"
+                    )
                     .reset_index()
-                )
-
-                st.markdown(
-                    '<div class="qa-shell" style="margin-top: 10px; margin-bottom: 12px;">'
-                    '<h2 style="margin:0; font-family:Josefin Sans, sans-serif; font-weight:900; color:var(--text);">'
-                    'Análise)</h2>'
-                
-                    '</div>',
-                    unsafe_allow_html=True
-                )
-
-                st.download_button(
-                    "Exportar CSV (quadro)",
-                    df_wide.to_csv(index=False).encode("utf-8"),
-                    "quadro_mapeamento_evidencias.csv",
-                    "text/csv",
-                    use_container_width=True
                 )
 
                 tsv_wide = df_to_tsv(df_wide)
 
-                c1, c2 = st.columns([1.3, 1.7], vertical_alignment="center")
+                # Cabeçalho central minimalista
+                st.markdown(
+                    """
+                    <div style="text-align:center; margin: 8px 0 18px 0;">
+                      <div style="
+                        font-family: 'Josefin Sans', sans-serif;
+                        font-weight: 900;
+                        font-size: 46px;
+                        letter-spacing: -0.02em;
+                        color: var(--text);
+                      ">Análise</div>
+                      <div style="color: var(--muted); font-size: 14px; margin-top:6px;">
+                        Quadro do mapeamento (evidência literal + página)
+                      </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                # Só dois botões (copiar/baixar)
+                c1, c2 = st.columns([1, 1], vertical_alignment="center")
                 with c1:
-                    copy_button_tsv(tsv_wide, "📋 Copiar quadro (TSV)", key="copy_quadro_tsv")
+                    copy_button_tsv(tsv_wide, "📋 Copiar quadro (TSV)", key="copy_quadro_tsv_clean")
                 with c2:
                     st.download_button(
-                        "Baixar TSV (quadro)",
+                        "⬇️ Baixar quadro (TSV)",
                         tsv_wide.encode("utf-8"),
-                        "quadro_mapeamento_evidencias.tsv",
+                        "quadro_mapeamento.tsv",
                         "text/tab-separated-values",
                         use_container_width=True
                     )
 
-                with st.expander("Abrir TSV (se o copiar falhar)", expanded=False):
-                    st.text_area(
-                        "Selecione tudo (Ctrl/Cmd + A), copie e cole na planilha.",
-                        value=tsv_wide,
-                        height=220,
-                        key="tsv_quadro_text"
-                    )
-
-                # ✅ VISUALIZAÇÃO BONITA (HTML real, não vira texto)
+                # Quadro
                 render_quadro_html(df_wide, max_height_px=650)
-
-                # Auditoria LONG
-                with st.expander("Exportar formato LONG (auditoria: resposta, evidência e página em colunas separadas)", expanded=False):
-                    st.download_button(
-                        "Exportar CSV (long)",
-                        df_long[["Documento", "Pergunta", "Resposta", "Evidência", "Página"]].to_csv(index=False).encode("utf-8"),
-                        "mapeamento_long.csv",
-                        "text/csv",
-                        use_container_width=True
-                    )
