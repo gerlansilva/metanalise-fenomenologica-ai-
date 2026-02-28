@@ -872,8 +872,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     '<div class="qa-shell" style="margin-top: 10px; margin-bottom: 12px;">'
                     '<h2 style="margin:0; font-family:Josefin Sans, sans-serif; font-weight:900; color:var(--text);">'
                     'Análise)</h2>'
-                    '<p style="margin:6px 0 0 0; color:var(--muted); font-size:14px;">'
-                    'Cada célula contém a citação literal do artigo e termina com (p. X). Cabeçalho fixo + quebra de linha para leitura.</p>'
+                
                     '</div>',
                     unsafe_allow_html=True
                 )
