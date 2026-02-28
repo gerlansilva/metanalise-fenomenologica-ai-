@@ -5,12 +5,12 @@ import os
 import time
 import threading
 import requests
+import io, csv
+import streamlit.components.v1 as components
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
-import io, csv
-import streamlit.components.v1 as components
 
 # ============================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -163,7 +163,6 @@ div[data-baseweb="tab-highlight"]{
 # ============================================================
 if "analysis_done" not in st.session_state: st.session_state.analysis_done = False
 if "result_data" not in st.session_state: st.session_state.result_data = None
-if "df_sys_long" not in st.session_state: st.session_state.df_sys_long = None
 if "last_mode" not in st.session_state: st.session_state.last_mode = None
 if "cross_synthesis" not in st.session_state: st.session_state.cross_synthesis = {}
 if "ris_pdfs" not in st.session_state: st.session_state.ris_pdfs = []
@@ -244,38 +243,7 @@ class AnalysisResult(BaseModel):
 # ============================================================
 # FUNÇÕES AUXILIARES
 # ============================================================
-def gerar_sintese_transversal(pergunta: str, df_sub: pd.DataFrame) -> str:
-    linhas = []
-    for _, r in df_sub.iterrows():
-        doc = str(r.get("Documento", "")).strip()
-        evid = str(r.get("Evidência", "")).strip()
-        pag = r.get("Página", None)
-        pag_str = f"{pag}" if (pag is not None and str(pag).strip() != "") else "null"
-        linhas.append(f"- DOCUMENTO: {doc}\n  EVIDÊNCIA: \"{evid}\"\n  PÁGINA: {pag_str}\n")
-
-    prompt = f"""
-Você está comparando resultados entre documentos para a MESMA pergunta, com base apenas nas evidências abaixo.
-
-PERGUNTA:
-{pergunta}
-
-EVIDÊNCIAS POR DOCUMENTO:
-{chr(10).join(linhas)}
-
-TAREFAS (nesta ordem):
-1) CONVERGÊNCIAS (bullets)
-2) DIVERGÊNCIAS (bullets)
-3) DISTRIBUIÇÃO/CONTAGEM (Item — Nº de documentos). Use "não informado" quando apropriado.
-4) SÍNTESE INTERPRETATIVA (6–10 linhas), em português acadêmico claro.
-"""
-    resp = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=[prompt],
-        config=types.GenerateContentConfig(temperature=0.2),
-    )
-    return resp.text
-
-def parse_ris(ris_text):
+def parse_ris(ris_text: str):
     entries = []
     current = {}
     for line in ris_text.splitlines():
@@ -295,7 +263,7 @@ def parse_ris(ris_text):
                 current[key] = val
     return entries
 
-def fetch_oa_pdf(doi):
+def fetch_oa_pdf(doi: str):
     try:
         url = f"https://api.unpaywall.org/v2/{doi}?email=dobbylivreagora@gmail.com"
         res = requests.get(url, timeout=10)
@@ -338,11 +306,11 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
             padding:10px 14px;
             border-radius:14px;
             border:1px solid rgba(47,36,28,0.16);
-            background: var(--panel2);
-            color: var(--text);
+            background:#EDE4D1;
+            color:#2F241C;
             font-weight: 800;
             cursor: pointer;
-            box-shadow: var(--shadow2);
+            box-shadow: 0 2px 10px rgba(47,36,28,0.08);
         ">{label}</button>
 
         <script>
@@ -363,87 +331,87 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
         height=55,
     )
 
-# ✅ NOVO: render HTML do quadro (leitura perfeita)
+# ✅ ATUALIZADO: render HTML com components.html (não aparece CSS como texto)
 def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     def esc(x: str) -> str:
-        # escape básico para HTML
         return (x.replace("&", "&amp;")
                  .replace("<", "&lt;")
-                 .replace(">", "&gt;"))
+                 .replace(">", "&gt;")
+                 .replace('"', "&quot;"))
 
     html = f"""
-    <div style="
+    <style>
+      .qa-wrap {{
         overflow:auto;
         max-height:{max_height_px}px;
         border-radius:18px;
         border:1px solid rgba(47,36,28,0.15);
-        box-shadow: var(--shadow2);
-        background: var(--panel);
-    ">
-    <table style="
+        box-shadow: 0 2px 10px rgba(47,36,28,0.08);
+        background: #F1E9D8;
+      }}
+      table.qa-table {{
         border-collapse: collapse;
         width:100%;
         font-size:14px;
-    ">
+        color:#2F241C;
+      }}
+      thead th {{
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: #EDE4D1;
+        padding: 12px;
+        border-bottom: 1px solid #C9BFA6;
+        text-align: left;
+        font-weight: 800;
+      }}
+      tbody td {{
+        padding: 12px;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        vertical-align: top;
+        line-height: 1.55;
+        white-space: pre-wrap;
+      }}
+      tbody td.doc {{
+        font-weight: 800;
+        background: rgba(255,255,255,0.25);
+        min-width: 280px;
+      }}
+      thead th.doc {{
+        min-width: 280px;
+      }}
+      thead th.qcol {{
+        min-width: 380px;
+      }}
+      .qa-wrap::-webkit-scrollbar {{ width: 10px; height: 10px; }}
+      .qa-wrap::-webkit-scrollbar-thumb {{ background: rgba(111,138,115,0.75); border-radius: 999px; }}
+      .qa-wrap::-webkit-scrollbar-track {{ background: rgba(47,36,28,0.06); }}
+    </style>
+
+    <div class="qa-wrap">
+      <table class="qa-table">
+        <thead><tr>
     """
 
-    # HEADER (sticky)
-    html += "<thead><tr>"
-    for col in df.columns:
-        html += f"""
-        <th style="
-            position:sticky;
-            top:0;
-            z-index:2;
-            background:var(--panel2);
-            padding:12px;
-            border-bottom:1px solid var(--line);
-            text-align:left;
-            font-weight:800;
-            min-width:{280 if col=='Documento' else 380}px;
-        ">
-        {esc(str(col))}
-        </th>
-        """
-    html += "</tr></thead>"
+    for i, col in enumerate(df.columns):
+        cls = "doc" if i == 0 else "qcol"
+        html += f'<th class="{cls}">{esc(str(col))}</th>'
 
-    # BODY
-    html += "<tbody>"
+    html += "</tr></thead><tbody>"
+
     for _, row in df.iterrows():
         html += "<tr>"
         for i, col in enumerate(df.columns):
-            cell = row[col]
-            cell = "" if pd.isna(cell) else str(cell)
-            cell = esc(cell)
-
+            cell = "" if pd.isna(row[col]) else str(row[col])
             if i == 0:
-                # Documento
-                html += f"""
-                <td style="
-                    padding:12px;
-                    font-weight:700;
-                    border-bottom:1px solid rgba(0,0,0,0.05);
-                    min-width:280px;
-                    vertical-align:top;
-                    background: rgba(255,255,255,0.25);
-                ">{cell}</td>
-                """
+                html += f'<td class="doc">{esc(cell)}</td>'
             else:
-                # Evidência (quebra e leitura)
-                html += f"""
-                <td style="
-                    padding:12px;
-                    border-bottom:1px solid rgba(0,0,0,0.05);
-                    white-space:pre-wrap;
-                    line-height:1.55;
-                    vertical-align:top;
-                    min-width:380px;
-                ">{cell}</td>
-                """
+                html += f"<td>{esc(cell)}</td>"
         html += "</tr>"
+
     html += "</tbody></table></div>"
 
-    st.markdown(html, unsafe_allow_html=True)
+    components.html(html, height=max_height_px + 30, scrolling=True)
 
 # ============================================================
 # TÍTULO CENTRALIZADO
@@ -864,7 +832,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
                             """, unsafe_allow_html=True)
         tab_idx += 1
 
-    # ===================== Mapeamento (QUADRO COM EVIDÊNCIA + PÁGINA) =====================
+    # ===================== Mapeamento =====================
     if includes_systematic(render_mode):
         with st_tabs[tab_idx]:
             docs = (sys_data or {}).get("documentos", [])
@@ -902,13 +870,14 @@ if st.session_state.analysis_done and st.session_state.result_data:
 
                 st.markdown(
                     '<div class="qa-shell" style="margin-top: 10px; margin-bottom: 12px;">'
-                    '<h4 style="margin:0; color:var(--accent2);">🧾 Quadro do Mapeamento (EVIDÊNCIA literal + página)</h4>'
-                    '<p style="margin:6px 0 0 0; color:var(--muted); font-size:13px;">Cada célula contém a citação literal do artigo e termina com (p. X). Cabeçalho fixo + quebra de linha para leitura.</p>'
+                    '<h2 style="margin:0; font-family:Josefin Sans, sans-serif; font-weight:900; color:var(--text);">'
+                    '🧾 Quadro do Mapeamento (EVIDÊNCIA literal + página)</h2>'
+                    '<p style="margin:6px 0 0 0; color:var(--muted); font-size:14px;">'
+                    'Cada célula contém a citação literal do artigo e termina com (p. X). Cabeçalho fixo + quebra de linha para leitura.</p>'
                     '</div>',
                     unsafe_allow_html=True
                 )
 
-                # Exportar CSV (quadro)
                 st.download_button(
                     "Exportar CSV (quadro)",
                     df_wide.to_csv(index=False).encode("utf-8"),
@@ -917,7 +886,6 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     use_container_width=True
                 )
 
-                # TSV para colar em Sheets/Excel
                 tsv_wide = df_to_tsv(df_wide)
 
                 c1, c2 = st.columns([1.3, 1.7], vertical_alignment="center")
@@ -940,14 +908,10 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         key="tsv_quadro_text"
                     )
 
-                # ✅ NOVO: VISUALIZAÇÃO BONITA (tabela HTML)
+                # ✅ VISUALIZAÇÃO BONITA (HTML real, não vira texto)
                 render_quadro_html(df_wide, max_height_px=650)
 
-                # (Opcional) manter o st.dataframe só para ordenar/inspecionar rapidamente:
-                with st.expander("Ver em DataFrame (modo planilha)", expanded=False):
-                    st.dataframe(df_wide, use_container_width=True, hide_index=True, height=520)
-
-                # Exportar LONG (auditoria)
+                # Auditoria LONG
                 with st.expander("Exportar formato LONG (auditoria: resposta, evidência e página em colunas separadas)", expanded=False):
                     st.download_button(
                         "Exportar CSV (long)",
