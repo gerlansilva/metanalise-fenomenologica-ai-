@@ -9,6 +9,8 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
+import io, csv
+import streamlit.components.v1 as components
 
 # ============================================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -243,7 +245,6 @@ class AnalysisResult(BaseModel):
 # FUNÇÕES AUXILIARES
 # ============================================================
 def gerar_sintese_transversal(pergunta: str, df_sub: pd.DataFrame) -> str:
-    # Mantém como estava (síntese em PT) — opcional no quadro.
     linhas = []
     for _, r in df_sub.iterrows():
         doc = str(r.get("Documento", "")).strip()
@@ -319,6 +320,130 @@ def includes_thematic(m: str) -> bool:
 
 def includes_systematic(m: str) -> bool:
     return m in ["Mapeamento Sistemático", "Fenomenológico + Mapeamento", "Temático + Mapeamento", "Todos (3 modos)"]
+
+def df_to_tsv(df: pd.DataFrame) -> str:
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter="\t", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
+    writer.writerow(df.columns.tolist())
+    for row in df.itertuples(index=False):
+        writer.writerow(list(row))
+    return output.getvalue()
+
+def copy_button_tsv(tsv_text: str, label: str, key: str):
+    safe = tsv_text.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
+    components.html(
+        f"""
+        <button id="{key}" style="
+            width:100%;
+            padding:10px 14px;
+            border-radius:14px;
+            border:1px solid rgba(47,36,28,0.16);
+            background: var(--panel2);
+            color: var(--text);
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: var(--shadow2);
+        ">{label}</button>
+
+        <script>
+          const btn = document.getElementById("{key}");
+          btn.addEventListener("click", async () => {{
+            try {{
+              const text = `{safe}`;
+              await navigator.clipboard.writeText(text);
+              btn.innerText = "✅ Copiado!";
+              setTimeout(() => btn.innerText = "{label}", 1400);
+            }} catch (e) {{
+              btn.innerText = "⚠️ Não consegui copiar (use a caixa abaixo)";
+              setTimeout(() => btn.innerText = "{label}", 2200);
+            }}
+          }});
+        </script>
+        """,
+        height=55,
+    )
+
+# ✅ NOVO: render HTML do quadro (leitura perfeita)
+def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
+    def esc(x: str) -> str:
+        # escape básico para HTML
+        return (x.replace("&", "&amp;")
+                 .replace("<", "&lt;")
+                 .replace(">", "&gt;"))
+
+    html = f"""
+    <div style="
+        overflow:auto;
+        max-height:{max_height_px}px;
+        border-radius:18px;
+        border:1px solid rgba(47,36,28,0.15);
+        box-shadow: var(--shadow2);
+        background: var(--panel);
+    ">
+    <table style="
+        border-collapse: collapse;
+        width:100%;
+        font-size:14px;
+    ">
+    """
+
+    # HEADER (sticky)
+    html += "<thead><tr>"
+    for col in df.columns:
+        html += f"""
+        <th style="
+            position:sticky;
+            top:0;
+            z-index:2;
+            background:var(--panel2);
+            padding:12px;
+            border-bottom:1px solid var(--line);
+            text-align:left;
+            font-weight:800;
+            min-width:{280 if col=='Documento' else 380}px;
+        ">
+        {esc(str(col))}
+        </th>
+        """
+    html += "</tr></thead>"
+
+    # BODY
+    html += "<tbody>"
+    for _, row in df.iterrows():
+        html += "<tr>"
+        for i, col in enumerate(df.columns):
+            cell = row[col]
+            cell = "" if pd.isna(cell) else str(cell)
+            cell = esc(cell)
+
+            if i == 0:
+                # Documento
+                html += f"""
+                <td style="
+                    padding:12px;
+                    font-weight:700;
+                    border-bottom:1px solid rgba(0,0,0,0.05);
+                    min-width:280px;
+                    vertical-align:top;
+                    background: rgba(255,255,255,0.25);
+                ">{cell}</td>
+                """
+            else:
+                # Evidência (quebra e leitura)
+                html += f"""
+                <td style="
+                    padding:12px;
+                    border-bottom:1px solid rgba(0,0,0,0.05);
+                    white-space:pre-wrap;
+                    line-height:1.55;
+                    vertical-align:top;
+                    min-width:380px;
+                ">{cell}</td>
+                """
+        html += "</tr>"
+    html += "</tbody></table></div>"
+
+    st.markdown(html, unsafe_allow_html=True)
 
 # ============================================================
 # TÍTULO CENTRALIZADO
@@ -494,10 +619,6 @@ if run:
             )
 
         if includes_systematic(mode):
-            # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            # IMPORTANTE: aqui reforçamos que a "evidência_textual" deve ser CITAÇÃO LITERAL
-            # (não paráfrase) e deve vir COM PÁGINA.
-            # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             prompt_text += (
                 "=== MODO MAPEAMENTO SISTEMÁTICO ===\n"
                 "Responda às perguntas abaixo para CADA documento:\n"
@@ -763,19 +884,16 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         })
                 df_long = pd.DataFrame(rows_long)
 
-                # >>>>>>>>>>>> AQUI ESTÁ A MUDANÇA: a célula do quadro usa EVIDÊNCIA (citação) + página
                 def fmt_evid(row):
                     evid = (row.get("Evidência") or "").strip()
                     pag = row.get("Página", None)
                     pag_txt = f"{pag}" if (pag is not None and str(pag).strip() != "") else "null"
-                    # Formato parecido com o seu print: "... (p. X)"
                     if evid:
                         return f'{evid} (p. {pag_txt})'
                     return f'(p. {pag_txt})'
 
                 df_long["Evidencia_com_pagina"] = df_long.apply(fmt_evid, axis=1)
 
-                # Quadro wide: Documento nas linhas, Perguntas nas colunas, conteúdo = evidência literal + página
                 df_wide = (
                     df_long
                     .pivot_table(index="Documento", columns="Pergunta", values="Evidencia_com_pagina", aggfunc="first")
@@ -785,12 +903,12 @@ if st.session_state.analysis_done and st.session_state.result_data:
                 st.markdown(
                     '<div class="qa-shell" style="margin-top: 10px; margin-bottom: 12px;">'
                     '<h4 style="margin:0; color:var(--accent2);">🧾 Quadro do Mapeamento (EVIDÊNCIA literal + página)</h4>'
-                    '<p style="margin:6px 0 0 0; color:var(--muted); font-size:13px;">Cada célula contém a citação literal do artigo e termina com (p. X).</p>'
+                    '<p style="margin:6px 0 0 0; color:var(--muted); font-size:13px;">Cada célula contém a citação literal do artigo e termina com (p. X). Cabeçalho fixo + quebra de linha para leitura.</p>'
                     '</div>',
                     unsafe_allow_html=True
                 )
 
-                # Exportações
+                # Exportar CSV (quadro)
                 st.download_button(
                     "Exportar CSV (quadro)",
                     df_wide.to_csv(index=False).encode("utf-8"),
@@ -799,52 +917,8 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     use_container_width=True
                 )
 
-                # TSV para colar direto em Google Sheets/Excel (mantém colunas)
-                import io, csv
-                def df_to_tsv(df: pd.DataFrame) -> str:
-                    output = io.StringIO()
-                    writer = csv.writer(output, delimiter="\t", quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
-                    writer.writerow(df.columns.tolist())
-                    for row in df.itertuples(index=False):
-                        writer.writerow(list(row))
-                    return output.getvalue()
-
+                # TSV para colar em Sheets/Excel
                 tsv_wide = df_to_tsv(df_wide)
-
-                import streamlit.components.v1 as components
-                def copy_button_tsv(tsv_text: str, label: str, key: str):
-                    safe = tsv_text.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
-                    components.html(
-                        f"""
-                        <button id="{key}" style="
-                            width:100%;
-                            padding:10px 14px;
-                            border-radius:14px;
-                            border:1px solid rgba(47,36,28,0.16);
-                            background: var(--panel2);
-                            color: var(--text);
-                            font-weight: 800;
-                            cursor: pointer;
-                            box-shadow: var(--shadow2);
-                        ">{label}</button>
-
-                        <script>
-                          const btn = document.getElementById("{key}");
-                          btn.addEventListener("click", async () => {{
-                            try {{
-                              const text = `{safe}`;
-                              await navigator.clipboard.writeText(text);
-                              btn.innerText = "✅ Copiado!";
-                              setTimeout(() => btn.innerText = "{label}", 1400);
-                            }} catch (e) {{
-                              btn.innerText = "⚠️ Não consegui copiar (use a caixa abaixo)";
-                              setTimeout(() => btn.innerText = "{label}", 2200);
-                            }}
-                          }});
-                        </script>
-                        """,
-                        height=55,
-                    )
 
                 c1, c2 = st.columns([1.3, 1.7], vertical_alignment="center")
                 with c1:
@@ -866,15 +940,14 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         key="tsv_quadro_text"
                     )
 
-                # Mostrar na tela (leitura)
-                st.dataframe(
-                    df_wide,
-                    use_container_width=True,
-                    hide_index=True,
-                    height=520
-                )
+                # ✅ NOVO: VISUALIZAÇÃO BONITA (tabela HTML)
+                render_quadro_html(df_wide, max_height_px=650)
 
-                # Exportar também o LONG (para auditoria)
+                # (Opcional) manter o st.dataframe só para ordenar/inspecionar rapidamente:
+                with st.expander("Ver em DataFrame (modo planilha)", expanded=False):
+                    st.dataframe(df_wide, use_container_width=True, hide_index=True, height=520)
+
+                # Exportar LONG (auditoria)
                 with st.expander("Exportar formato LONG (auditoria: resposta, evidência e página em colunas separadas)", expanded=False):
                     st.download_button(
                         "Exportar CSV (long)",
