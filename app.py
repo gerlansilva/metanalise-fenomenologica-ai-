@@ -610,7 +610,20 @@ with st.sidebar:
 # ============================================================
 # EXECUTAR ANÁLISE
 # ============================================================
-if total_size > 15 * 1024 * 1024:
+if run:
+    st.session_state.analysis_done = False
+    st.session_state.result_data = None
+    st.session_state.last_mode = mode
+
+    if includes_phenom(mode) and not phenom_q.strip():
+        st.error("Por favor, preencha a Interrogação Fenomenológica.")
+        st.stop()
+    if includes_systematic(mode) and not sys_q.strip():
+        st.error("Por favor, preencha as Perguntas para Mapeamento Sistemático.")
+        st.stop()
+
+    total_size = sum([f.size for f in (uploaded_files or [])]) + sum([len(p['bytes']) for p in st.session_state.ris_pdfs])
+    if total_size > 15 * 1024 * 1024:
         st.error("O tamanho total excede 15 MB. Reduza a quantidade de PDFs.")
         st.stop()
 
@@ -619,7 +632,7 @@ if total_size > 15 * 1024 * 1024:
     start_time = time.time()
 
     def update_timer():
-        # Estimativa inteligente: ~10 segundos por documento + 10s de base
+        # Estimativa inteligente: ~10 segundos por documento + 15s de base
         estimated_time = max(15, total_docs * 10) 
         
         while not stop_timer:
@@ -637,16 +650,16 @@ if total_size > 15 * 1024 * 1024:
             html_loading = f"""
             <div style="background: #FFFFFF; border: 2px solid #17C3B2; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 8px 24px rgba(34, 124, 157, 0.1); margin-bottom: 20px;">
                 <h3 style="color: #227C9D; font-family: 'Amiko', sans-serif; margin-top: 0; margin-bottom: 20px;">
-                    🧠 Analisando {{total_docs}} documento(s) com IA...
+                    🧠 Analisando {total_docs} documento(s) com IA...
                 </h3>
                 
                 <div style="background: #FEF9EF; border-radius: 999px; height: 22px; width: 100%; margin-bottom: 12px; overflow: hidden; position: relative;">
-                    <div style="background: linear-gradient(90deg, #FE6D73, #FFCB77); width: {{progress}}%; height: 100%; border-radius: 999px; transition: width 1s ease-out;"></div>
+                    <div style="background: linear-gradient(90deg, #FE6D73, #FFCB77); width: {progress}%; height: 100%; border-radius: 999px; transition: width 1s ease-out;"></div>
                 </div>
                 
                 <div style="display: flex; justify-content: space-between; color: #4A7A8C; font-weight: 700; font-family: 'Asap', sans-serif; font-size: 16px;">
-                    <span>Progresso: {{progress}}%</span>
-                    <span>Tempo decorrido: {{mins:02d}}:{{secs:02d}}</span>
+                    <span>Progresso: {progress}%</span>
+                    <span>Tempo decorrido: {mins:02d}:{secs:02d}</span>
                 </div>
             </div>
             """
