@@ -610,94 +610,51 @@ with st.sidebar:
 # ============================================================
 # EXECUTAR ANÁLISE
 # ============================================================
-if run:
-    st.session_state.analysis_done = False
-    st.session_state.result_data = None
-    st.session_state.last_mode = mode
-
-    if includes_phenom(mode) and not phenom_q.strip():
-        st.error("Por favor, preencha a Interrogação Fenomenológica.")
-        st.stop()
-    if includes_systematic(mode) and not sys_q.strip():
-        st.error("Por favor, preencha as Perguntas para Mapeamento Sistemático.")
-        st.stop()
-
-    total_size = sum([f.size for f in (uploaded_files or [])]) + sum([len(p['bytes']) for p in st.session_state.ris_pdfs])
-    if total_size > 15 * 1024 * 1024:
-        st.error("O tamanho total excede 15 MB. Reduza a quantidade de PDFs.")
-        st.stop()
-
-    timer_placeholder = st.empty()
+timer_placeholder = st.empty()
     stop_timer = False
     start_time = time.time()
 
     def update_timer():
+        # Estimativa inteligente: ~10 segundos por documento + 10s de base
+        # Ajuste esse multiplicador (10) para mais ou menos, dependendo do tamanho médio dos seus PDFs
+        estimated_time = max(15, total_docs * 10) 
+        
         while not stop_timer:
             elapsed = int(time.time() - start_time)
             mins, secs = divmod(elapsed, 60)
-            timer_placeholder.info(f"⏳ **Analisando documentos... Tempo decorrido: {mins:02d}:{secs:02d}**")
+            
+            # Calcula uma porcentagem simulada que desacelera perto do fim
+            if elapsed < estimated_time:
+                # Vai de 0 a 90% dentro do tempo estimado
+                progress = int((elapsed / estimated_time) * 90) 
+            else:
+                # Depois do tempo estimado, sobe 1% a cada 3 segundos, travando no 99%
+                extra = int((elapsed - estimated_time) / 3)
+                progress = min(99, 90 + extra)
+            
+            # Design do Card de Loading com a sua paleta de cores
+            html_loading = f"""
+            <div style="background: #FFFFFF; border: 2px solid #17C3B2; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 8px 24px rgba(34, 124, 157, 0.1); margin-bottom: 20px;">
+                <h3 style="color: #227C9D; font-family: 'Amiko', sans-serif; margin-top: 0; margin-bottom: 20px;">
+                    🧠 Analisando {total_docs} documento(s) com IA...
+                </h3>
+                
+                <div style="background: #FEF9EF; border-radius: 999px; height: 22px; width: 100%; margin-bottom: 12px; overflow: hidden; position: relative;">
+                    <div style="background: linear-gradient(90deg, #FE6D73, #FFCB77); width: {progress}%; height: 100%; border-radius: 999px; transition: width 1s ease-out;"></div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; color: #4A7A8C; font-weight: 700; font-family: 'Asap', sans-serif; font-size: 16px;">
+                    <span>Progresso: {progress}%</span>
+                    <span>Tempo decorrido: {mins:02d}:{secs:02d}</span>
+                </div>
+            </div>
+            """
+            timer_placeholder.markdown(html_loading, unsafe_allow_html=True)
             time.sleep(1)
 
     t = threading.Thread(target=update_timer)
     add_script_run_ctx(t)
     t.start()
-
-    try:
-        gemini_files = [types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf") for f in (uploaded_files or [])]
-
-        for pdf_doc in st.session_state.ris_pdfs:
-            gemini_files.append(types.Part.from_bytes(data=pdf_doc['bytes'], mime_type="application/pdf"))
-
-        for doc in st.session_state.ris_texts:
-            gemini_files.append(types.Part.from_text(text=f"DOCUMENTO: {doc['name']}\n\n{doc['text']}"))
-
-        prompt_text = "Leia todos os documentos anexados como um corpus único.\n\n"
-
-        if includes_phenom(mode):
-            prompt_text += (
-                f"=== MODO FENOMENOLÓGICO ===\nINTERROGAÇÃO FENOMENOLÓGICA:\n\"{phenom_q}\"\n\n"
-                "ETAPA 1: Extraia unidades de sentido.\n"
-                "ETAPA 2: Transforme cada unidade em unidade de significado.\n"
-                "ETAPA 3: Agrupe convergências.\n"
-                "ETAPA 4: Sugira categorias fenomenológicas.\n\n"
-            )
-
-        if includes_thematic(mode):
-            prompt_text += "=== MODO ANÁLISE TEMÁTICA (Braun & Clarke) ===\n"
-            if thematic_q.strip():
-                prompt_text += f"QUESTÃO ORIENTADORA:\n\"{thematic_q}\"\n\n"
-            prompt_text += "Extraia códigos e grupe-os em temas.\n\n"
-
-        if includes_systematic(mode):
-            prompt_text += (
-                "=== MODO MAPEAMENTO SISTEMÁTICO ===\n"
-                f"{sys_q}\n\n"
-                "Use citação literal em 'evidencia_textual'.\n\n"
-            )
-
-        contents = gemini_files + [prompt_text]
-
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction="Assistente de análise qualitativa. Use JSON.",
-                response_mime_type="application/json",
-                response_schema=AnalysisResult,
-                temperature=0.2,
-            ),
-        )
-
-        st.session_state.result_data = json.loads(response.text)
-        st.session_state.analysis_done = True
-        st.success("🎉 Análise concluída!")
-
-    except Exception as e:
-        st.error(f"Erro durante a análise: {e}")
-    finally:
-        stop_timer = True
-        t.join()
-        timer_placeholder.empty()
 
 # ============================================================
 # RENDER RESULTADOS
