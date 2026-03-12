@@ -387,7 +387,7 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
         height=55,
     )
 
-# ✅ QUADRO HTML: Atualizado com textos justificados e cabeçalhos centralizados
+# ✅ QUADRO HTML: Atualizado com coluna "Documento" centralizada e textos de resposta justificados
 def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     def esc(x: str) -> str:
         return (x.replace("&", "&amp;")
@@ -445,7 +445,7 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         line-height: 1.55;
         white-space: pre-wrap;
         min-width: 420px;
-        text-align: justify; /* ✨ Textos das análises justificados! */
+        text-align: justify; /* Textos das análises justificados */
       }}
 
       tbody td.doc {{
@@ -459,7 +459,7 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         width: {doc_w}px;
         color: #227C9D;
         border-right: 1px solid rgba(23, 195, 178, 0.2);
-        text-align: left; /* Mantendo a coluna de referência à esquerda para evitar buracos em branco */
+        text-align: center; /* ✨ Coluna Documento centralizada! */
       }}
 
       tbody tr:nth-child(even) td {{
