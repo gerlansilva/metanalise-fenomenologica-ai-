@@ -631,7 +631,7 @@ if run:
     stop_timer = False
     start_time = time.time()
 
-    def update_timer():
+   def update_timer():
         # Estimativa inteligente: ~10 segundos por documento + 15s de base
         estimated_time = max(15, total_docs * 10) 
         
@@ -646,29 +646,23 @@ if run:
                 extra = int((elapsed - estimated_time) / 3)
                 progress = min(99, 90 + extra)
             
-            # Design do Card de Loading com a sua paleta de cores
+            # ATENÇÃO AQUI: O HTML precisa ficar encostado na esquerda para não virar código puro!
             html_loading = f"""
-            <div style="background: #FFFFFF; border: 2px solid #17C3B2; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 8px 24px rgba(34, 124, 157, 0.1); margin-bottom: 20px;">
-                <h3 style="color: #227C9D; font-family: 'Amiko', sans-serif; margin-top: 0; margin-bottom: 20px;">
-                    🧠 Analisando {total_docs} documento(s) com IA...
-                </h3>
-                
-                <div style="background: #FEF9EF; border-radius: 999px; height: 22px; width: 100%; margin-bottom: 12px; overflow: hidden; position: relative;">
-                    <div style="background: linear-gradient(90deg, #FE6D73, #FFCB77); width: {progress}%; height: 100%; border-radius: 999px; transition: width 1s ease-out;"></div>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; color: #4A7A8C; font-weight: 700; font-family: 'Asap', sans-serif; font-size: 16px;">
-                    <span>Progresso: {progress}%</span>
-                    <span>Tempo decorrido: {mins:02d}:{secs:02d}</span>
-                </div>
-            </div>
-            """
+<div style="background: #FFFFFF; border: 2px solid #17C3B2; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 8px 24px rgba(34, 124, 157, 0.1); margin-bottom: 20px;">
+    <h3 style="color: #227C9D; font-family: 'Amiko', sans-serif; margin-top: 0; margin-bottom: 20px;">
+        🧠 Analisando {total_docs} documento(s) com IA...
+    </h3>
+    <div style="background: #FEF9EF; border-radius: 999px; height: 22px; width: 100%; margin-bottom: 12px; overflow: hidden; position: relative;">
+        <div style="background: linear-gradient(90deg, #FE6D73, #FFCB77); width: {progress}%; height: 100%; border-radius: 999px; transition: width 1s ease-out;"></div>
+    </div>
+    <div style="display: flex; justify-content: space-between; color: #4A7A8C; font-weight: 700; font-family: 'Asap', sans-serif; font-size: 16px;">
+        <span>Progresso: {progress}%</span>
+        <span>Tempo decorrido: {mins:02d}:{secs:02d}</span>
+    </div>
+</div>
+"""
             timer_placeholder.markdown(html_loading, unsafe_allow_html=True)
             time.sleep(1)
-
-    t = threading.Thread(target=update_timer)
-    add_script_run_ctx(t)
-    t.start()
 # ============================================================
 # RENDER RESULTADOS
 # ============================================================
