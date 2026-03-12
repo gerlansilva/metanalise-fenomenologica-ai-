@@ -387,7 +387,7 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
         height=55,
     )
 
-# ✅ QUADRO HTML: Atualizado com coluna "Documento" centralizada (horizontal e verticalmente)
+# ✅ QUADRO HTML: Atualizado com coluna "Documento" centralizada (horizontal e verticalmente) e justificado
 def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     def esc(x: str) -> str:
         return (x.replace("&", "&amp;")
@@ -459,8 +459,8 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         width: {doc_w}px;
         color: #227C9D;
         border-right: 1px solid rgba(23, 195, 178, 0.2);
-        text-align: center; /* ✨ Centraliza o texto horizontalmente */
-        vertical-align: middle; /* ✨ Centraliza o texto verticalmente na célula */
+        text-align: center; /* Centraliza o texto horizontalmente */
+        vertical-align: middle; /* Centraliza o texto verticalmente na célula */
       }}
 
       tbody tr:nth-child(even) td {{
@@ -501,11 +501,12 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     html += "</tbody></table></div>"
 
     components.html(html, height=max_height_px + 30, scrolling=True)
+
 # ============================================================
 # TÍTULO CENTRALIZADO
 # ============================================================
 st.markdown('<div class="qa-title-center">Análise Qualitativa AI</div>', unsafe_allow_html=True)
-st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática • Mapeamento</div>', unsafe_allow_html=True)
+st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática • Mapeamento • Integração RIS</div>', unsafe_allow_html=True)
 
 # ============================================================
 # BARRA LATERAL (SIDEBAR)
@@ -631,7 +632,7 @@ if run:
     stop_timer = False
     start_time = time.time()
 
-   def update_timer():
+    def update_timer():
         # Estimativa inteligente: ~10 segundos por documento + 15s de base
         estimated_time = max(15, total_docs * 10) 
         
@@ -663,6 +664,68 @@ if run:
 """
             timer_placeholder.markdown(html_loading, unsafe_allow_html=True)
             time.sleep(1)
+
+    t = threading.Thread(target=update_timer)
+    add_script_run_ctx(t)
+    t.start()
+
+    try:
+        gemini_files = [types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf") for f in (uploaded_files or [])]
+
+        for pdf_doc in st.session_state.ris_pdfs:
+            gemini_files.append(types.Part.from_bytes(data=pdf_doc['bytes'], mime_type="application/pdf"))
+
+        for doc in st.session_state.ris_texts:
+            gemini_files.append(types.Part.from_text(text=f"DOCUMENTO: {doc['name']}\n\n{doc['text']}"))
+
+        prompt_text = "Leia todos os documentos anexados como um corpus único.\n\n"
+
+        if includes_phenom(mode):
+            prompt_text += (
+                f"=== MODO FENOMENOLÓGICO ===\nINTERROGAÇÃO FENOMENOLÓGICA:\n\"{phenom_q}\"\n\n"
+                "ETAPA 1: Extraia unidades de sentido.\n"
+                "ETAPA 2: Transforme cada unidade em unidade de significado.\n"
+                "ETAPA 3: Agrupe convergências.\n"
+                "ETAPA 4: Sugira categorias fenomenológicas.\n\n"
+            )
+
+        if includes_thematic(mode):
+            prompt_text += "=== MODO ANÁLISE TEMÁTICA (Braun & Clarke) ===\n"
+            if thematic_q.strip():
+                prompt_text += f"QUESTÃO ORIENTADORA:\n\"{thematic_q}\"\n\n"
+            prompt_text += "Extraia códigos e grupe-os em temas.\n\n"
+
+        if includes_systematic(mode):
+            prompt_text += (
+                "=== MODO MAPEAMENTO SISTEMÁTICO ===\n"
+                f"{sys_q}\n\n"
+                "Use citação literal em 'evidencia_textual'.\n\n"
+            )
+
+        contents = gemini_files + [prompt_text]
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction="Assistente de análise qualitativa. Use JSON.",
+                response_mime_type="application/json",
+                response_schema=AnalysisResult,
+                temperature=0.2,
+            ),
+        )
+
+        st.session_state.result_data = json.loads(response.text)
+        st.session_state.analysis_done = True
+        st.success("🎉 Análise concluída!")
+
+    except Exception as e:
+        st.error(f"Erro durante a análise: {e}")
+    finally:
+        stop_timer = True
+        t.join()
+        timer_placeholder.empty()
+
 # ============================================================
 # RENDER RESULTADOS
 # ============================================================
