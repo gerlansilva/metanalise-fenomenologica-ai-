@@ -387,7 +387,7 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
         height=55,
     )
 
-# ✅ QUADRO HTML: Atualizado com a paleta, cabeçalho centralizado e cor de texto ajustada
+# ✅ QUADRO HTML: Atualizado com textos justificados e cabeçalhos centralizados
 def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     def esc(x: str) -> str:
         return (x.replace("&", "&amp;")
@@ -425,7 +425,7 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         color: #FEF9EF;
         padding: 16px;
         border-bottom: none;
-        text-align: center; /* Texto do cabeçalho centralizado */
+        text-align: center; /* Cabeçalhos centralizados */
         font-weight: 700;
         min-width: 420px;
       }}
@@ -445,6 +445,7 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         line-height: 1.55;
         white-space: pre-wrap;
         min-width: 420px;
+        text-align: justify; /* ✨ Textos das análises justificados! */
       }}
 
       tbody td.doc {{
@@ -456,8 +457,9 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         min-width: {doc_w}px;
         max-width: {doc_w}px;
         width: {doc_w}px;
-        color: #227C9D; /* Cor alterada de coral (#FE6D73) para o azul escuro da paleta */
+        color: #227C9D;
         border-right: 1px solid rgba(23, 195, 178, 0.2);
+        text-align: left; /* Mantendo a coluna de referência à esquerda para evitar buracos em branco */
       }}
 
       tbody tr:nth-child(even) td {{
@@ -503,7 +505,7 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
 # TÍTULO CENTRALIZADO
 # ============================================================
 st.markdown('<div class="qa-title-center">Análise Qualitativa AI</div>', unsafe_allow_html=True)
-st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática • Mapeamento • Integração RIS</div>', unsafe_allow_html=True)
+st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática • Mapeamento</div>', unsafe_allow_html=True)
 
 # ============================================================
 # BARRA LATERAL (SIDEBAR)
