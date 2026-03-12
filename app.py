@@ -506,7 +506,7 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
 # TÍTULO CENTRALIZADO
 # ============================================================
 st.markdown('<div class="qa-title-center">Análise Qualitativa AI</div>', unsafe_allow_html=True)
-st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática • Mapeamento</div>', unsafe_allow_html=True)
+st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática • Mapeamento • Integração RIS</div>', unsafe_allow_html=True)
 
 # ============================================================
 # BARRA LATERAL (SIDEBAR)
@@ -795,8 +795,8 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     with cols[i % 3]:
                         st.markdown(f"""
                             <div class="qa-shell" style="height: 100%; margin-bottom: 20px;">
-                              <h3 style="color: var(--coral); font-weight: 700; margin-top:0;">{c.get("nome", "")}</h3>
-                              <p style="font-size: 15px; color: var(--text-dark);">{c.get("descricao", "")}</p>
+                              <h3 style="color: var(--blue-dark); font-weight: 700; margin-top:0; text-align: center;">{c.get("nome", "")}</h3>
+                              <p style="font-size: 15px; color: var(--text-dark); text-align: justify;">{c.get("descricao", "")}</p>
                             </div>
                             """, unsafe_allow_html=True)
         tab_idx += 1
@@ -830,8 +830,8 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     with cols[i % 2]:
                         st.markdown(f"""
                             <div class="qa-shell" style="height: 100%; margin-bottom: 20px;">
-                              <h3 style="color: var(--blue-dark); font-weight: 700; margin-top:0;">{t.get("nome", "")}</h3>
-                              <p style="font-weight: 600;">{t.get("descricao", "")}</p>
+                              <h3 style="color: var(--blue-dark); font-weight: 700; margin-top:0; text-align: center;">{t.get("nome", "")}</h3>
+                              <p style="font-weight: 600; text-align: justify; color: var(--text-dark);">{t.get("descricao", "")}</p>
                             </div>
                             """, unsafe_allow_html=True)
         tab_idx += 1
