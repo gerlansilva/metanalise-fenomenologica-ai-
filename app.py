@@ -387,7 +387,7 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
         height=55,
     )
 
-# ✅ QUADRO HTML: Atualizado com a paleta
+# ✅ QUADRO HTML: Atualizado com a paleta, cabeçalho centralizado e cor de texto ajustada
 def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     def esc(x: str) -> str:
         return (x.replace("&", "&amp;")
@@ -425,7 +425,7 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         color: #FEF9EF;
         padding: 16px;
         border-bottom: none;
-        text-align: left;
+        text-align: center; /* Texto do cabeçalho centralizado */
         font-weight: 700;
         min-width: 420px;
       }}
@@ -456,7 +456,7 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         min-width: {doc_w}px;
         max-width: {doc_w}px;
         width: {doc_w}px;
-        color: #FE6D73;
+        color: #227C9D; /* Cor alterada de coral (#FE6D73) para o azul escuro da paleta */
         border-right: 1px solid rgba(23, 195, 178, 0.2);
       }}
 
