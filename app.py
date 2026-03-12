@@ -387,7 +387,7 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
         height=55,
     )
 
-# ✅ QUADRO HTML: Atualizado com coluna "Documento" centralizada e textos de resposta justificados
+# ✅ QUADRO HTML: Atualizado com coluna "Documento" centralizada (horizontal e verticalmente)
 def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     def esc(x: str) -> str:
         return (x.replace("&", "&amp;")
@@ -459,7 +459,8 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         width: {doc_w}px;
         color: #227C9D;
         border-right: 1px solid rgba(23, 195, 178, 0.2);
-        text-align: center; /* ✨ Coluna Documento centralizada! */
+        text-align: center; /* ✨ Centraliza o texto horizontalmente */
+        vertical-align: middle; /* ✨ Centraliza o texto verticalmente na célula */
       }}
 
       tbody tr:nth-child(even) td {{
@@ -500,7 +501,6 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     html += "</tbody></table></div>"
 
     components.html(html, height=max_height_px + 30, scrolling=True)
-
 # ============================================================
 # TÍTULO CENTRALIZADO
 # ============================================================
