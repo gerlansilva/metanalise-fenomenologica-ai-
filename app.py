@@ -17,148 +17,185 @@ from pydantic import BaseModel, Field
 # ============================================================
 st.set_page_config(
     page_title="Análise Qualitativa AI",
-    page_icon="📖",
+    page_icon="✨",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ============================================================
-# IDENTIDADE VISUAL (PALETA + FONTES)
+# IDENTIDADE VISUAL (DESIGN DOPAMINA)
 # ============================================================
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Open+Sans:wght@300;400;600;700&family=Work+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700;900&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 :root{
-  --bg:#E7DFC9;
-  --panel:#F1E9D8;
-  --panel2:#EDE4D1;
-  --line:#C9BFA6;
-  --text:#2F241C;
-  --muted:#6E6A5E;
-  --accent:#C26A2E;
-  --accent2:#A35422;
-  --moss:#6F8A73;
-  --shadow: 0 10px 26px rgba(47,36,28,0.10);
-  --shadow2: 0 2px 10px rgba(47,36,28,0.08);
-  --radius: 20px;
+  /* Fundo super claro e limpo para as cores brilharem */
+  --bg: #F4F7FE; 
+  /* Painéis brancos para contraste */
+  --panel: #FFFFFF;
+  --panel2: #E8EEF2;
+  --line: #E2E8F0;
+  /* Texto escuro com um tom de azul para ficar mais suave que o preto */
+  --text: #1E293B;
+  --muted: #64748B;
+  
+  /* CORES DOPAMINA */
+  --accent: #FF007F; /* Rosa Choque Vibrante */
+  --accent2: #FF8C00; /* Laranja Energético */
+  --moss: #00E5FF; /* Ciano Elétrico (para destaques secundários) */
+  --purple: #8A2BE2; /* Roxo para as tags */
+  
+  /* Sombras coloridas e suaves */
+  --shadow: 0 10px 30px rgba(255, 0, 127, 0.08);
+  --shadow2: 0 4px 15px rgba(0, 0, 0, 0.05);
+  --radius: 24px; /* Bordas bem redondinhas */
 }
 
+/* Alterando a fonte global para Nunito */
 html, body { background: var(--bg) !important; }
 .stApp { background: var(--bg) !important; color: var(--text) !important; }
-* { font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Arial, sans-serif; }
+* { font-family: "Nunito", system-ui, -apple-system, sans-serif; }
 
 .block-container { max-width: 1320px; padding-top: 28px; padding-bottom: 32px; }
 
+/* Título com Gradiente Vibrante */
 .qa-title-center{
   font-family: "Josefin Sans", sans-serif;
   font-weight: 900;
-  font-size: 48px;
+  font-size: 54px;
   letter-spacing: -0.02em;
-  color: var(--text);
   text-align: center;
   margin: 0 0 6px 0;
-  background: -webkit-linear-gradient(135deg, var(--accent), var(--accent2));
+  background: -webkit-linear-gradient(45deg, var(--accent), var(--accent2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0px 4px 6px rgba(255,0,127,0.15));
 }
 .qa-subtitle-center {
   text-align: center;
   color: var(--muted);
-  font-size: 15px;
-  margin-bottom: 28px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 35px;
 }
 
+/* Caixas de conteúdo (Shells) brancas flutuantes */
 .qa-shell{
   background: var(--panel);
-  border: 1px solid rgba(47,36,28,0.12);
-  border-radius: calc(var(--radius) + 6px);
+  border: none;
+  border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 18px 20px;
+  padding: 24px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.qa-shell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(255, 0, 127, 0.12);
 }
 
+/* Inputs e Textareas mais "fofos" */
 textarea, input, .stTextInput > div > div > input {
   background: var(--panel2) !important;
   color: var(--text) !important;
-  border-radius: 14px !important;
-  border: 1px solid rgba(47,36,28,0.18) !important;
+  border-radius: 16px !important;
+  border: 2px solid transparent !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02) !important;
+  transition: all 0.3s ease;
 }
-textarea::placeholder, input::placeholder { color: rgba(110,106,94,0.85) !important; }
 textarea:focus, input:focus {
-  border-color: rgba(194,106,46,0.70) !important;
-  box-shadow: 0 0 0 4px rgba(194,106,46,0.18) !important;
+  border-color: var(--moss) !important;
+  box-shadow: 0 0 0 4px rgba(0, 229, 255, 0.2) !important;
+  background: #FFFFFF !important;
 }
 
 .stRadio label, .stMarkdown, label, p, span, div { color: var(--text); }
-.stRadio [data-testid="stMarkdownContainer"] p { color: var(--text) !important; }
+.stRadio [data-testid="stMarkdownContainer"] p { color: var(--text) !important; font-weight: 600; }
 
 [data-testid="stFileUploader"]{
   border-radius: var(--radius) !important;
-  border: 1px dashed rgba(47,36,28,0.25) !important;
-  background: rgba(241,233,216,0.55) !important;
+  border: 2px dashed var(--moss) !important;
+  background: rgba(0, 229, 255, 0.05) !important;
 }
 
-/* botão principal */
+/* BOTÃO PRINCIPAL (A injeção de dopamina!) */
 .stButton > button {
-  background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
+  background: linear-gradient(45deg, var(--accent), var(--accent2)) !important;
   color: #fff !important;
   border: none !important;
-  border-radius: 14px !important;
-  padding: 12px 18px !important;
-  font-family: "Work Sans", sans-serif !important;
+  border-radius: 30px !important;
+  padding: 14px 24px !important;
   font-weight: 800 !important;
-  box-shadow: 0 14px 22px rgba(194,106,46,0.18) !important;
+  font-size: 16px !important;
+  box-shadow: 0 10px 20px rgba(255, 0, 127, 0.3) !important;
   width: 100%;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
-.stButton > button:hover { filter: saturate(1.05); transform: translateY(-1px); }
+.stButton > button:hover { 
+  transform: translateY(-3px) scale(1.02); 
+  box-shadow: 0 15px 25px rgba(255, 140, 0, 0.4) !important; 
+}
 
-/* download botão padrão (se aparecer) */
+/* Download botão padrão */
 div[data-testid="stDownloadButton"] > button {
-  border: 1px solid rgba(47,36,28,0.16) !important;
-  background: var(--panel2) !important;
-  color: var(--text) !important;
-  border-radius: 14px !important;
+  background: #FFFFFF !important;
+  color: var(--accent) !important;
+  border: 2px solid var(--accent) !important;
+  border-radius: 24px !important;
   font-weight: 800 !important;
   box-shadow: var(--shadow2) !important;
 }
-
-/* tabs */
-button[data-baseweb="tab"]{
-  font-family: "Work Sans", sans-serif !important;
-  font-weight: 800 !important;
-  color: rgba(110,106,94,0.95) !important;
+div[data-testid="stDownloadButton"] > button:hover {
+  background: var(--accent) !important;
+  color: #FFFFFF !important;
 }
-button[data-baseweb="tab"][aria-selected="true"]{ color: var(--text) !important; }
+
+/* Quotes mais coloridos */
+.quote{
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.62;
+  white-space: pre-wrap;
+  border-left: 5px solid var(--accent);
+  padding-left: 15px;
+  color: var(--text);
+  background: linear-gradient(90deg, rgba(255,0,127,0.05) 0%, rgba(255,255,255,0) 100%);
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-radius: 0 12px 12px 0;
+}
+
+/* Chips coloridos parecendo "stickers" */
+.chip{
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFF;
+  background: linear-gradient(135deg, var(--purple), #B829EA);
+  box-shadow: 0 2px 8px rgba(138, 43, 226, 0.3);
+}
+
+/* Tabs do Streamlit */
+button[data-baseweb="tab"]{
+  font-weight: 800 !important;
+  color: var(--muted) !important;
+  font-size: 16px !important;
+}
+button[data-baseweb="tab"][aria-selected="true"]{ color: var(--accent) !important; }
 div[data-baseweb="tab-highlight"]{
   background: linear-gradient(90deg, var(--accent), var(--accent2)) !important;
-  height: 3px !important;
+  height: 4px !important;
   border-radius: 999px !important;
 }
 
-/* quote + chip */
-.quote{
-  font-style: italic;
-  line-height: 1.62;
-  white-space: pre-wrap;
-  border-left: 4px solid rgba(111,138,115,0.95);
-  padding-left: 12px;
-  color: var(--text);
-}
-.chip{
-  border: 1px solid rgba(47,36,28,0.14);
-  border-radius: 12px;
-  padding: 6px 10px;
-  font-size: 13px;
-  color: var(--text);
-  background: rgba(111,138,115,0.22);
-}
-
-/* scrollbar global */
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(111,138,115,0.75); border-radius: 999px; }
-::-webkit-scrollbar-track { background: rgba(47,36,28,0.06); }
+/* Barra de rolagem mais amigável */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--moss); border-radius: 999px; }
+::-webkit-scrollbar-track { background: transparent; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -308,14 +345,19 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
         <button id="{key}" style="
             width:100%;
             padding:12px 14px;
-            border-radius:14px;
-            border:1px solid rgba(47,36,28,0.16);
-            background:#EDE4D1;
-            color:#2F241C;
+            border-radius:24px;
+            border:2px solid #00E5FF;
+            background:#FFFFFF;
+            color:#00BCD4;
             font-weight:800;
+            font-family: 'Nunito', sans-serif;
             cursor:pointer;
-            box-shadow: 0 2px 10px rgba(47,36,28,0.08);
-        ">{label}</button>
+            box-shadow: 0 4px 15px rgba(0,229,255,0.15);
+            transition: all 0.3s ease;
+        "
+        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(0,229,255,0.25)';"
+        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,229,255,0.15)';"
+        >{label}</button>
 
         <script>
           const btn = document.getElementById("{key}");
@@ -323,7 +365,7 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
             try {{
               const text = `{safe}`;
               await navigator.clipboard.writeText(text);
-              btn.innerText = "✅ Copiado!";
+              btn.innerText = "✨ Copiado!";
               setTimeout(() => btn.innerText = "{label}", 1400);
             }} catch (e) {{
               btn.innerText = "⚠️ Falhou (use o TSV abaixo)";
@@ -332,10 +374,10 @@ def copy_button_tsv(tsv_text: str, label: str, key: str):
           }});
         </script>
         """,
-        height=60,
+        height=65,
     )
 
-# ✅ QUADRO: HTML real (components.html) + cabeçalho sticky + primeira coluna sticky (Documento)
+# ✅ QUADRO HTML: Atualizado para a estética super clean Dopamina
 def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
     def esc(x: str) -> str:
         return (x.replace("&", "&amp;")
@@ -348,28 +390,32 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
 
     html = f"""
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+      
       .qa-wrap {{
         overflow:auto;
         max-height:{max_height_px}px;
-        border-radius:18px;
-        border:1px solid rgba(47,36,28,0.15);
-        box-shadow: 0 2px 10px rgba(47,36,28,0.08);
-        background: #F1E9D8;
+        border-radius:24px;
+        border:none;
+        box-shadow: 0 10px 30px rgba(255,0,127,0.08);
+        background: #FFFFFF;
+        font-family: 'Nunito', sans-serif;
       }}
       table.qa-table {{
         border-collapse: collapse;
         width:100%;
         font-size:14px;
-        color:#2F241C;
+        color:#1E293B;
       }}
 
       thead th {{
         position: sticky;
         top: 0;
         z-index: 5;
-        background: #EDE4D1;
-        padding: 12px;
-        border-bottom: 1px solid #C9BFA6;
+        background: #F4F7FE;
+        color: #FF007F;
+        padding: 16px;
+        border-bottom: 2px solid #E2E8F0;
         text-align: left;
         font-weight: 800;
         min-width: 420px;
@@ -385,8 +431,8 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
       }}
 
       tbody td {{
-        padding: 12px;
-        border-bottom: 1px solid rgba(0,0,0,0.06);
+        padding: 16px;
+        border-bottom: 1px solid #E2E8F0;
         vertical-align: top;
         line-height: 1.55;
         white-space: pre-wrap;
@@ -399,23 +445,24 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
         left: 0;
         z-index: 3;
         font-weight: 800;
-        background: rgba(255,255,255,0.40);
+        background: #FFFFFF;
         min-width: {doc_w}px;
         max-width: {doc_w}px;
         width: {doc_w}px;
+        color: #8A2BE2;
       }}
 
       /* zebra */
-      tbody tr:nth-child(odd) td {{
-        background: rgba(255,255,255,0.10);
+      tbody tr:nth-child(even) td {{
+        background: #F8FAFC;
       }}
-      tbody tr:nth-child(odd) td.doc {{
-        background: rgba(255,255,255,0.45);
+      tbody tr:nth-child(even) td.doc {{
+        background: #F8FAFC;
       }}
 
-      .qa-wrap::-webkit-scrollbar {{ width: 10px; height: 10px; }}
-      .qa-wrap::-webkit-scrollbar-thumb {{ background: rgba(111,138,115,0.75); border-radius: 999px; }}
-      .qa-wrap::-webkit-scrollbar-track {{ background: rgba(47,36,28,0.06); }}
+      .qa-wrap::-webkit-scrollbar {{ width: 8px; height: 8px; }}
+      .qa-wrap::-webkit-scrollbar-thumb {{ background: #00E5FF; border-radius: 999px; }}
+      .qa-wrap::-webkit-scrollbar-track {{ background: transparent; }}
     </style>
 
     <div class="qa-wrap">
@@ -449,13 +496,13 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
 # TÍTULO CENTRALIZADO
 # ============================================================
 st.markdown('<div class="qa-title-center">Análise Qualitativa AI</div>', unsafe_allow_html=True)
-st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática (Braun & Clarke) • Mapeamento • Integração RIS (Scopus/OpenAlex)</div>', unsafe_allow_html=True)
+st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática (Braun & Clarke) • Mapeamento • Integração RIS</div>', unsafe_allow_html=True)
 
 # ============================================================
 # BARRA LATERAL (SIDEBAR)
 # ============================================================
 with st.sidebar:
-    st.header("Configurações")
+    st.header("✨ Configurações")
     mode = st.radio(
         "Modo de Análise",
         ["Fenomenológico", "Temático (Braun & Clarke)", "Mapeamento Sistemático",
@@ -549,7 +596,7 @@ with st.sidebar:
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
-    run = st.button("▶ Iniciar Análise do Corpus", type="primary", disabled=(total_docs == 0))
+    run = st.button("🚀 Iniciar Análise do Corpus", type="primary", disabled=(total_docs == 0))
 
 # ============================================================
 # EXECUTAR ANÁLISE
@@ -650,7 +697,7 @@ if run:
 
         st.session_state.result_data = json.loads(response.text)
         st.session_state.analysis_done = True
-        st.success("✨ Análise concluída com sucesso!")
+        st.success("🎉 Análise concluída com sucesso! Explore os resultados abaixo.")
 
     except Exception as e:
         st.error(f"Erro durante a análise: {e}")
@@ -687,7 +734,7 @@ if st.session_state.analysis_done and st.session_state.result_data:
     st_tabs = st.tabs(tabs)
     tab_idx = 0
 
-    # ===================== Fenomenológico (mantido) =====================
+    # ===================== Fenomenológico =====================
     if includes_phenom(render_mode):
         with st_tabs[tab_idx]:
             unidades = (phenom_data or {}).get("unidades_sentido", [])
@@ -715,12 +762,12 @@ if st.session_state.analysis_done and st.session_state.result_data:
                         cj_html += f'<div style="font-size:12px; font-weight:bold; color:var(--muted);">JUSTIFICATIVA</div><div>{jus}</div>'
 
                     st.markdown(f"""
-                        <div class="qa-shell" style="margin-bottom: 15px;">
-                          <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <div class="qa-shell" style="margin-bottom: 20px;">
+                          <div style="display:flex; gap:10px; margin-bottom:15px;">
                             <span class="chip">{uid}</span><span class="chip">{doc}</span><span class="chip">{pag_txt}</span>
                           </div>
                           <div class="quote" style="margin-bottom:15px;">"{cit}"</div>
-                          <div style="background: rgba(255,255,255,0.4); padding: 12px; border-radius: 10px;">{cj_html}</div>
+                          <div style="background: var(--panel2); padding: 16px; border-radius: 16px;">{cj_html}</div>
                         </div>
                         """, unsafe_allow_html=True)
         tab_idx += 1
@@ -739,13 +786,13 @@ if st.session_state.analysis_done and st.session_state.result_data:
 
                 for _, r in df_um.iterrows():
                     st.markdown(f"""
-                        <div class="qa-shell" style="margin-bottom: 15px;">
-                          <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <div class="qa-shell" style="margin-bottom: 20px;">
+                          <div style="display:flex; gap:10px; margin-bottom:15px;">
                             <span class="chip">{r.get("id_unidade", "")}</span><span class="chip">{r.get("documento", "")}</span>
                           </div>
                           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <div><div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:5px;">TRECHO ORIGINAL</div><div class="quote">"{r.get("trecho_original", "")}"</div></div>
-                            <div><div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:5px;">SÍNTESE</div><div style="background: rgba(194,106,46,0.1); padding: 12px; border-radius: 10px; color: var(--accent2); font-weight: 600;">{r.get("sintese", "")}</div></div>
+                            <div><div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:8px;">TRECHO ORIGINAL</div><div class="quote">"{r.get("trecho_original", "")}"</div></div>
+                            <div><div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:8px;">SÍNTESE</div><div style="background: rgba(255, 140, 0, 0.1); padding: 16px; border-radius: 16px; color: var(--accent2); font-weight: 700;">{r.get("sintese", "")}</div></div>
                           </div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -761,22 +808,22 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     with cols[i % 3]:
                         rel = c.get("unidades_relacionadas", [])
                         chips_html = (
-                            '<div style="display:flex; flex-wrap:wrap; gap:5px;">'
+                            '<div style="display:flex; flex-wrap:wrap; gap:8px;">'
                             + "".join([f'<span class="chip" style="font-size:11px;">{u}</span>' for u in rel])
                             + "</div>"
                         ) if rel else "-"
 
                         st.markdown(f"""
-                            <div class="qa-shell" style="height: 100%; margin-bottom: 15px;">
-                              <h3 style="color: var(--accent2); margin-top:0;">{c.get("nome", "")}</h3>
-                              <p style="font-size: 14px;">{c.get("descricao", "")}</p>
-                              <div style="font-size:11px; font-weight:bold; color:var(--muted); margin-bottom:5px; margin-top:15px;">UNIDADES RELACIONADAS</div>
+                            <div class="qa-shell" style="height: 100%; margin-bottom: 20px;">
+                              <h3 style="color: var(--accent); font-weight: 800; margin-top:0;">{c.get("nome", "")}</h3>
+                              <p style="font-size: 15px; color: var(--text);">{c.get("descricao", "")}</p>
+                              <div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:10px; margin-top:20px;">UNIDADES RELACIONADAS</div>
                               {chips_html}
                             </div>
                             """, unsafe_allow_html=True)
         tab_idx += 1
 
-    # ===================== Temática (mantido) =====================
+    # ===================== Temática =====================
     if includes_thematic(render_mode):
         with st_tabs[tab_idx]:
             codigos = (them_data or {}).get("codigos", [])
@@ -794,15 +841,15 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     pag = r.get("pagina", None)
                     pag_txt = f"Pág. {pag}" if pag is not None else "Pág. null"
                     st.markdown(f"""
-                        <div class="qa-shell" style="margin-bottom: 15px;">
-                          <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <div class="qa-shell" style="margin-bottom: 20px;">
+                          <div style="display:flex; gap:10px; margin-bottom:15px;">
                             <span class="chip">{r.get("id_codigo", "")}</span><span class="chip">{r.get("documento", "")}</span><span class="chip">{pag_txt}</span>
                           </div>
                           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <div><div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:5px;">TRECHO LITERAL</div><div class="quote">"{r.get("trecho", "")}"</div></div>
-                            <div style="background: rgba(255,255,255,0.4); padding: 12px; border-radius: 10px;">
-                              <div style="font-size:12px; font-weight:bold; color:var(--muted);">CÓDIGO</div><div style="font-weight:bold; color:var(--accent2); margin-bottom:10px;">{r.get("codigo", "")}</div>
-                              <div style="font-size:12px; font-weight:bold; color:var(--muted);">DEFINIÇÃO</div><div>{r.get("descricao_codigo", "")}</div>
+                            <div><div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:8px;">TRECHO LITERAL</div><div class="quote">"{r.get("trecho", "")}"</div></div>
+                            <div style="background: var(--panel2); padding: 16px; border-radius: 16px;">
+                              <div style="font-size:12px; font-weight:bold; color:var(--muted);">CÓDIGO</div><div style="font-weight:800; font-size: 18px; color:var(--accent); margin-bottom:15px;">{r.get("codigo", "")}</div>
+                              <div style="font-size:12px; font-weight:bold; color:var(--muted);">DEFINIÇÃO</div><div style="font-weight: 600;">{r.get("descricao_codigo", "")}</div>
                             </div>
                           </div>
                         </div>
@@ -819,26 +866,26 @@ if st.session_state.analysis_done and st.session_state.result_data:
                     with cols[i % 2]:
                         rel = t.get("codigos_relacionados", [])
                         chips_html = (
-                            '<div style="display:flex; flex-wrap:wrap; gap:5px;">'
+                            '<div style="display:flex; flex-wrap:wrap; gap:8px;">'
                             + "".join([f'<span class="chip" style="font-size:11px;">{u}</span>' for u in rel])
                             + "</div>"
                         ) if rel else "-"
 
                         st.markdown(f"""
-                            <div class="qa-shell" style="height: 100%; margin-bottom: 15px;">
-                              <h3 style="color: var(--accent2); margin-top:0;">{t.get("nome", "")}</h3>
-                              <p>{t.get("descricao", "")}</p>
-                              <div style="background: rgba(255,255,255,0.5); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                                <div style="font-size:11px; font-weight:bold; color:var(--muted); margin-bottom:3px;">INTERPRETAÇÃO</div>
-                                <div style="font-size:14px;">{t.get("interpretacao", "")}</div>
+                            <div class="qa-shell" style="height: 100%; margin-bottom: 20px;">
+                              <h3 style="color: var(--accent2); font-weight: 800; margin-top:0;">{t.get("nome", "")}</h3>
+                              <p style="font-weight: 600;">{t.get("descricao", "")}</p>
+                              <div style="background: var(--panel2); padding: 14px; border-radius: 12px; margin-bottom: 15px;">
+                                <div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:5px;">INTERPRETAÇÃO</div>
+                                <div style="font-size:14px; font-weight: 600;">{t.get("interpretacao", "")}</div>
                               </div>
-                              <div style="font-size:11px; font-weight:bold; color:var(--muted); margin-bottom:5px;">CÓDIGOS RELACIONADOS</div>
+                              <div style="font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:10px;">CÓDIGOS RELACIONADOS</div>
                               {chips_html}
                             </div>
                             """, unsafe_allow_html=True)
         tab_idx += 1
 
-    # ===================== Mapeamento (LIMPO: só "Análise" + copiar/baixar + quadro) =====================
+    # ===================== Mapeamento =====================
     if includes_systematic(render_mode):
         with st_tabs[tab_idx]:
             docs = (sys_data or {}).get("documentos", [])
@@ -883,16 +930,16 @@ if st.session_state.analysis_done and st.session_state.result_data:
                 # Cabeçalho central minimalista
                 st.markdown(
                     """
-                    <div style="text-align:center; margin: 8px 0 18px 0;">
+                    <div style="text-align:center; margin: 8px 0 24px 0;">
                       <div style="
                         font-family: 'Josefin Sans', sans-serif;
                         font-weight: 900;
                         font-size: 46px;
                         letter-spacing: -0.02em;
                         color: var(--text);
-                      ">Análise</div>
-                      <div style="color: var(--muted); font-size: 14px; margin-top:6px;">
-                        Quadro do mapeamento (evidência literal + página)
+                      ">Mapeamento Sistemático</div>
+                      <div style="color: var(--muted); font-size: 15px; font-weight: 600; margin-top:6px;">
+                        Quadro consolidado (evidência literal + página)
                       </div>
                     </div>
                     """,
