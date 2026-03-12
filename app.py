@@ -506,8 +506,6 @@ def render_quadro_html(df: pd.DataFrame, max_height_px: int = 650):
 # TÍTULO CENTRALIZADO
 # ============================================================
 st.markdown('<div class="qa-title-center">Análise Qualitativa AI</div>', unsafe_allow_html=True)
-st.markdown('<div class="qa-subtitle-center">Fenomenológica • Temática • Mapeamento • Integração RIS</div>', unsafe_allow_html=True)
-
 # ============================================================
 # BARRA LATERAL (SIDEBAR)
 # ============================================================
