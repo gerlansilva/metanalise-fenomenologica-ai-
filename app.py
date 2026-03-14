@@ -23,7 +23,7 @@ st.set_page_config(
 )
 
 # ============================================================
-# IDENTIDADE VISUAL (CSS CUSTOMIZADO)
+# IDENTIDADE VISUAL (CSS ORIGINAL PRESERVADO)
 # ============================================================
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,15 +39,19 @@ st.markdown("""
   --coral: #FE6D73;
   --bg: var(--cream); 
   --panel: #FFFFFF;
+  --panel2: #FFF5E1; 
   --text-dark: #113F50; 
   --muted: #4A7A8C;
   --shadow: 0 8px 24px rgba(34, 124, 157, 0.1);
+  --shadow2: 0 4px 12px rgba(23, 195, 178, 0.15);
   --radius: 20px;
 }
 
 html, body { background: var(--bg) !important; }
 .stApp { background: var(--bg) !important; color: var(--text-dark) !important; }
-* { font-family: "Asap", sans-serif; }
+* { font-family: "Asap", system-ui, -apple-system, sans-serif; }
+
+.block-container { max-width: 1320px; padding-top: 28px; padding-bottom: 32px; }
 
 .qa-title-center{
   font-family: "Amiko", sans-serif;
@@ -55,15 +59,6 @@ html, body { background: var(--bg) !important; }
   font-size: 52px;
   text-align: center;
   color: var(--blue-dark);
-  margin-bottom: 5px;
-}
-
-.qa-subtitle-center {
-  font-family: "Annie Use Your Telescope", cursive;
-  text-align: center;
-  color: var(--coral);
-  font-size: 26px;
-  margin-bottom: 35px;
 }
 
 .qa-shell{
@@ -79,25 +74,23 @@ html, body { background: var(--bg) !important; }
 .quote{
   font-family: "Asap Condensed", sans-serif;
   font-style: italic;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.6;
   border-left: 5px solid var(--yellow);
-  padding: 10px 15px;
+  padding: 8px 15px;
   background: rgba(255, 203, 119, 0.1);
   border-radius: 0 12px 12px 0;
 }
 
 .chip{
   border-radius: 12px;
-  padding: 4px 12px;
-  font-size: 11px;
+  padding: 6px 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #FFF;
   background-color: var(--mint);
-  margin-right: 5px;
 }
 
-/* Botão Principal */
 .stButton > button {
   background-color: var(--coral) !important;
   color: #fff !important;
@@ -109,16 +102,30 @@ html, body { background: var(--bg) !important; }
 """, unsafe_allow_html=True)
 
 # ============================================================
-# MODELOS DE DADOS (PYDANTIC)
+# SESSION STATE
+# ============================================================
+for key in ["analysis_done", "result_data", "last_mode", "ris_pdfs", "ris_texts"]:
+    if key not in st.session_state: st.session_state[key] = None if key in ["result_data", "last_mode"] else ([] if "ris" in key else False)
+
+# ============================================================
+# GEMINI CLIENT
+# ============================================================
+api_key = os.environ.get("GEMINI_API_KEY")
+client = genai.Client(api_key=api_key)
+
+# ============================================================
+# MODELOS PYDANTIC (UNIFICADOS E MELHORADOS)
 # ============================================================
 class UnidadeSentido(BaseModel):
     id_unidade: str
     documento: str
     pagina: int | None
-    citacao_formatada: str = Field(description="Citação literal e página: 'Texto...' (p. X)")
+    citacao_literal: str
+    citacao_formatada: str = Field(description="Citação literal e página no formato: 'Texto...' (p. X).")
 
 class UnidadeSignificado(BaseModel):
     id_unidade: str
+    documento: str
     trecho_original: str
     sintese: str
 
@@ -167,152 +174,154 @@ class AnalysisResult(BaseModel):
     sistematico: SystematicResult | None = None
 
 # ============================================================
-# FUNÇÕES DE APOIO
+# FUNÇÕES AUXILIARES (RIS, UNPAYWALL, TSV)
 # ============================================================
+def parse_ris(ris_text):
+    entries, current = [], {}
+    for line in ris_text.splitlines():
+        line = line.strip()
+        if not line: continue
+        if line.startswith('ER  -'):
+            if current: entries.append(current)
+            current = {}
+        elif len(line) >= 6 and line[4:6] == '- ':
+            key, val = line[:2], line[6:].strip()
+            current[key] = current.get(key, "") + (" ; " if key in current else "") + val
+    return entries
+
+def fetch_oa_pdf(doi):
+    try:
+        res = requests.get(f"https://api.unpaywall.org/v2/{doi}?email=dobbylivreagora@gmail.com", timeout=10)
+        if res.status_code == 200 and res.json().get('is_oa'):
+            pdf_url = res.json()['best_oa_location'].get('url_for_pdf')
+            if pdf_url:
+                pdf_res = requests.get(pdf_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+                if pdf_res.status_code == 200: return pdf_res.content
+    except: pass
+    return None
+
 def df_to_tsv(df):
     output = io.StringIO()
-    df.to_csv(output, sep='\t', index=False)
+    df.to_csv(output, sep='\t', index=False, quoting=csv.QUOTE_MINIMAL)
     return output.getvalue()
 
-def render_quadro_html(df):
-    html = f"""
-    <div style="overflow-x:auto; border-radius:15px; border:1px solid #17C3B2;">
-        <table style="width:100%; border-collapse: collapse; font-family:Asap; font-size:13px;">
-            <thead>
-                <tr style="background:#227C9D; color:white;">
-                    {''.join([f'<th style="padding:12px; border:1px solid #ddd;">{c}</th>' for c in df.columns])}
-                </tr>
-            </thead>
-            <tbody>
-                {''.join([f'<tr>{" ".join([f"<td style=\'padding:10px; border:1px solid #eee; text-align:justify;\'>{v}</td>" for v in row])}</tr>' for row in df.values])}
-            </tbody>
-        </table>
-    </div>
-    """
-    components.html(html, height=500, scrolling=True)
+def render_quadro_html(df, max_height_px=650):
+    def esc(x): return str(x).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    html = f"""<style>.qa-wrap{{overflow:auto; max-height:{max_height_px}px; border-radius:16px; border:1px solid #17C3B2; background:#FFF;}}
+    table.qa-table{{border-collapse:collapse; width:100%; font-size:14px; color:#113F50;}}
+    th{{position:sticky; top:0; background:#227C9D; color:#FEF9EF; padding:16px; font-weight:700; text-align:center; min-width:300px;}}
+    td{{padding:16px; border-bottom:1px solid #eee; vertical-align:top; text-align:justify; white-space:pre-wrap;}}
+    .doc-col{{position:sticky; left:0; background:#FFF; font-weight:700; color:#227C9D; border-right:1px solid #17C3B2; text-align:center; vertical-align:middle; width:200px;}}</style>
+    <div class="qa-wrap"><table class="qa-table"><thead><tr>"""
+    for i, col in enumerate(df.columns): html += f"<th>{esc(col)}</th>"
+    html += "</tr></thead><tbody>"
+    for _, row in df.iterrows():
+        html += "<tr>"
+        for i, col in enumerate(df.columns):
+            cl = ' class="doc-col"' if i == 0 else ""
+            html += f"<td{cl}>{esc(row[col])}</td>"
+        html += "</tr>"
+    html += "</tbody></table></div>"
+    components.html(html, height=max_height_px + 30, scrolling=True)
 
 # ============================================================
-# LOGICA DE SESSÃO E API
+# INTERFACE E LÓGICA DE EXECUÇÃO
 # ============================================================
-if "analysis_done" not in st.session_state: st.session_state.analysis_done = False
-if "result_data" not in st.session_state: st.session_state.result_data = None
+st.markdown('<div class="qa-title-center">Análise Qualitativa AI</div>', unsafe_allow_html=True)
 
-api_key = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key)
-
-# ============================================================
-# INTERFACE - SIDEBAR
-# ============================================================
 with st.sidebar:
     st.header("⚙️ Configurações")
-    mode = st.selectbox("Modo de Análise", ["Todos (3 modos)", "Fenomenológico", "Temático", "Mapeamento"])
+    mode = st.radio("Modo", ["Fenomenológico", "Temático (Braun & Clarke)", "Mapeamento Sistemático", "Todos (3 modos)"])
     
-    phenom_q = st.text_area("Interrogação Fenomenológica", "Como o fenômeno se manifesta?")
-    thematic_q = st.text_area("Questão Temática", "Quais padrões emergem dos dados?")
-    sys_q = st.text_area("Perguntas Mapeamento (1 por linha)", "Objetivo?\nMetodologia?")
+    phenom_q = st.text_area("Interrogação Fenomenológica", height=100) if "Fenomenológico" in mode or "Todos" in mode else ""
+    thematic_q = st.text_area("Questão Temática", height=100) if "Temático" in mode or "Todos" in mode else ""
+    sys_q = st.text_area("Perguntas Mapeamento", height=100) if "Mapeamento" in mode or "Todos" in mode else ""
     
-    uploaded_files = st.file_uploader("Upload PDFs", type="pdf", accept_multiple_files=True)
-    run = st.button("🚀 Iniciar Análise", type="primary")
+    st.subheader("📚 Corpus")
+    with st.expander("📥 RIS / DOI"):
+        ris_file = st.file_uploader("Arquivo .ris", type=["ris", "txt"])
+        if ris_file and st.button("Processar RIS"):
+            entries = parse_ris(ris_file.getvalue().decode("utf-8", errors="ignore"))
+            for entry in entries:
+                doi = entry.get('DO', '').replace('https://doi.org/', '').strip()
+                pdf = fetch_oa_pdf(doi) if doi else None
+                if pdf: st.session_state.ris_pdfs.append({"name": entry.get('TI', 'Doc')+'.pdf', "bytes": pdf})
+                else: st.session_state.ris_texts.append({"name": entry.get('TI', 'Resumo'), "text": entry.get('AB', '')})
+    
+    uploaded_files = st.file_uploader("PDFs Manuais", type="pdf", accept_multiple_files=True)
+    total_docs = len(uploaded_files or []) + len(st.session_state.ris_pdfs) + len(st.session_state.ris_texts)
+    run = st.button("🚀 Iniciar Análise", type="primary", disabled=(total_docs == 0))
 
-# ============================================================
-# EXECUÇÃO DA ANÁLISE
-# ============================================================
-if run and uploaded_files:
-    with st.spinner("Analisando documentos..."):
-        parts = [types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf") for f in uploaded_files]
+if run:
+    st.session_state.analysis_done = False
+    timer_placeholder = st.empty()
+    stop_timer, start_time = False, time.time()
+
+    def timer_loop():
+        while not stop_timer:
+            elapsed = int(time.time() - start_time)
+            prog = min(99, int((elapsed / (total_docs * 10 + 5)) * 90))
+            timer_placeholder.markdown(f'<div style="background:#FFF; padding:20px; border-radius:15px; border:2px solid #17C3B2; text-align:center;">🧠 Analisando... {prog}% | {elapsed}s</div>', unsafe_allow_html=True)
+            time.sleep(1)
+
+    t = threading.Thread(target=timer_loop); add_script_run_ctx(t); t.start()
+
+    try:
+        contents = [types.Part.from_bytes(data=f.getvalue(), mime_type="application/pdf") for f in (uploaded_files or [])]
+        for p in st.session_state.ris_pdfs: contents.append(types.Part.from_bytes(data=p['bytes'], mime_type="application/pdf"))
+        for t_doc in st.session_state.ris_texts: contents.append(types.Part.from_text(text=t_doc['text']))
         
-        prompt = f"""
-        Analise o corpus anexado seguindo estas diretrizes:
-        
-        1. FENOMENOLOGIA:
-           - Pergunta: {phenom_q}
-           - Extraia Unidades de Sentido (US) com página.
-           - No campo 'citacao_formatada', use o formato: "Texto literal..." (p. X).
-           
-        2. TEMÁTICA:
-           - Pergunta: {thematic_q}
-           - Crie códigos e temas (Braun & Clarke).
-           
-        3. MAPEAMENTO:
-           - Responda: {sys_q}
-           - Use evidências literais.
-        """
-        
+        prompt = f"Analise o corpus.\n\n"
+        if phenom_q: prompt += f"FENOMENOLOGIA: {phenom_q}. Extraia US com página. Formate 'citacao_formatada' como: 'Trecho...' (p. X).\n"
+        if thematic_q: prompt += f"TEMÁTICA: {thematic_q}. Crie códigos e temas.\n"
+        if sys_q: prompt += f"MAPEAMENTO: {sys_q}. Use citações literais.\n"
+
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=parts + [prompt],
-            config=types.GenerateContentConfig(
-                system_instruction="Assistente de Pesquisa Qualitativa. Responda estritamente em JSON.",
-                response_mime_type="application/json",
-                response_schema=AnalysisResult,
-                temperature=0.2
-            )
+            model="gemini-2.0-flash", contents=contents + [prompt],
+            config=types.GenerateContentConfig(system_instruction="Use JSON.", response_mime_type="application/json", response_schema=AnalysisResult)
         )
         st.session_state.result_data = json.loads(response.text)
-        st.session_state.analysis_done = True
+        st.session_state.analysis_done, st.session_state.last_mode = True, mode
+    finally:
+        stop_timer = True; t.join(); timer_placeholder.empty()
 
 # ============================================================
-# EXIBIÇÃO DOS RESULTADOS
+# RENDERIZAÇÃO DOS RESULTADOS
 # ============================================================
 if st.session_state.analysis_done:
     res = st.session_state.result_data
-    st.markdown('<div class="qa-title-center">Análise Qualitativa AI</div>', unsafe_allow_html=True)
-    st.markdown('<div class="qa-subtitle-center">Resultados Processados com IA</div>', unsafe_allow_html=True)
-
-    tab_list = []
-    if res.get("fenomenologico"): tab_list.extend(["☰ Unidades", "🏷️ Categorias"])
-    if res.get("tematico"): tab_list.append("🧩 Temas")
-    if res.get("sistematico"): tab_list.append("🧭 Mapeamento")
+    tabs = st.tabs(["☰ Unidades (US)", "📄 Significados", "🏷️ Categorias", "🧩 Temático", "🧭 Mapeamento"])
     
-    st_tabs = st.tabs(tab_list)
-    curr = 0
+    with tabs[0]: # Unidades de Sentido
+        if res.get("fenomenologico"):
+            for u in res["fenomenologico"]["unidades_sentido"]:
+                st.markdown(f'<div class="qa-shell" style="border-left:6px solid var(--blue-dark);"><span class="chip">{u["id_unidade"]}</span> <span class="chip" style="background:var(--muted);">{u["documento"]}</span><div class="quote" style="margin-top:10px;">{u["citacao_formatada"]}</div></div>', unsafe_allow_html=True)
 
-    # --- ABA FENOMENOLOGIA (UNIDADES) ---
-    if res.get("fenomenologico"):
-        with st_tabs[curr]:
-            for us in res["fenomenologico"]["unidades_sentido"]:
-                st.markdown(f"""
-                <div class="qa-shell" style="border-left: 5px solid var(--blue-dark);">
-                    <span class="chip" style="background:var(--blue-dark);">{us['id_unidade']}</span>
-                    <span class="chip" style="background:var(--muted);">{us['documento']}</span>
-                    <div class="quote" style="margin-top:10px;">{us['citacao_formatada']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-        curr += 1
-        
-        with st_tabs[curr]:
+    with tabs[1]: # Unidades de Significado
+        if res.get("fenomenologico"):
+            for s in res["fenomenologico"]["unidades_significado"]:
+                st.markdown(f'<div class="qa-shell"><span class="chip">{s["id_unidade"]}</span><div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:10px;"><div><small>ORIGINAL</small><div class="quote">{s["trecho_original"]}</div></div><div><small>SÍNTESE</small><div style="padding:15px; background:#e8f4f8; border-radius:10px;">{s["sintese"]}</div></div></div></div>', unsafe_allow_html=True)
+
+    with tabs[2]: # Categorias (VISUAL DA IMAGEM)
+        if res.get("fenomenologico"):
             cats = res["fenomenologico"]["categorias"]
-            cols = st.columns(len(cats))
+            cols = st.columns(len(cats) if cats else 1)
             for i, c in enumerate(cats):
                 with cols[i]:
-                    st.markdown(f"""
-                    <div class="qa-shell" style="border-top: 5px solid purple; height:100%;">
-                        <h4 style="color:purple; text-align:center;">{c['nome']}</h4>
-                        <p style="font-size:13px; text-align:justify;">{c['descricao']}</p>
-                        <hr>
-                        { ' '.join([f'<span class="chip" style="background:purple; font-size:9px;">{u}</span>' for u in c['unidades_relacionadas']]) }
-                    </div>
-                    """, unsafe_allow_html=True)
-        curr += 1
+                    st.markdown(f'<div class="qa-shell" style="height:100%; border-top:6px solid purple;"><h4 style="color:purple; text-align:center;">{c["nome"]}</h4><p style="font-size:14px; text-align:justify;">{c["descricao"]}</p><hr><small>RELACIONADAS:</small><br>{" ".join([f'<span class="chip" style="background:purple; font-size:10px;">{us}</span>' for us in c["unidades_relacionadas"]])}</div>', unsafe_allow_html=True)
 
-    # --- ABA TEMÁTICA ---
-    if res.get("tematico"):
-        with st_tabs[curr]:
+    with tabs[3]: # Temático
+        if res.get("tematico"):
             for t in res["tematico"]["temas"]:
-                st.markdown(f"### 🧩 Tema: {t['nome']}")
-                st.info(t['descricao'])
-                st.write(f"Códigos: {', '.join(t['codigos_relacionados'])}")
-        curr += 1
+                st.markdown(f'<div class="qa-shell"><h3>🧩 {t["nome"]}</h3><p>{t["descricao"]}</p></div>', unsafe_allow_html=True)
 
-    # --- ABA MAPEAMENTO ---
-    if res.get("sistematico"):
-        with st_tabs[curr]:
-            data_map = []
+    with tabs[4]: # Mapeamento
+        if res.get("sistematico"):
+            rows = []
             for doc in res["sistematico"]["documentos"]:
-                row = {"Documento": doc["documento"]}
-                for ans in doc["respostas"]:
-                    row[ans["pergunta"]] = f"{ans['evidencia_textual']} (p. {ans['pagina']})"
-                data_map.append(row)
-            df_map = pd.DataFrame(data_map)
-            render_quadro_html(df_map)
-            st.download_button("Baixar TSV", df_to_tsv(df_map), "mapeamento.tsv")
+                d = {"Documento": doc["documento"]}
+                for a in doc["respostas"]: d[a["pergunta"]] = f"{a['evidencia_textual']} (p. {a['pagina']})"
+                rows.append(d)
+            df = pd.DataFrame(rows)
+            render_quadro_html(df)
+            st.download_button("Baixar Quadro", df_to_tsv(df), "mapeamento.tsv")
